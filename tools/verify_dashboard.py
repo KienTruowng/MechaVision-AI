@@ -1,4 +1,4 @@
-"""Chạy QWidget thật, kiểm tra tương tác và chụp Dashboard V2.1 ở hai kích thước.
+"""Chạy QWidget thật, kiểm tra tương tác và chụp Dashboard V3 ở hai kích thước.
 
 Video sinh trong công cụ này là fixture tổng hợp có nhãn rõ ràng; không phải
 dữ liệu đo cơ cấu thực và không được dùng để công bố độ chính xác thực tế.
@@ -18,7 +18,7 @@ def main():
     )
     parser.add_argument(
         "--out",
-        default="outputs/dashboard-v2-qa",
+        default="outputs/dashboard-v3-qa",
         help="Thư mục lưu ảnh và biên bản JSON",
     )
     parser.add_argument(
@@ -42,7 +42,7 @@ def main():
         os.environ["QT_SCALE_FACTOR"] = str(args.scale_factor)
     if not args.native:
         os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    from PySide6.QtCore import Qt, QTimer, QEventLoop, QRect
+    from PySide6.QtCore import Qt, QTimer, QEventLoop, QRect, QCoreApplication, QEvent
     from PySide6.QtWidgets import QApplication, QLabel
     from PySide6.QtGui import QFontInfo
     from PySide6.QtTest import QTest
@@ -99,6 +99,9 @@ def main():
         window.resize(*size)
         if process_events:
             app.processEvents()
+        # Hoàn tất bố trí sau setText từ mẫu mới, không nhận thêm mẫu giữa hai bước.
+        for _ in range(3):
+            QCoreApplication.sendPostedEvents(None, QEvent.LayoutRequest)
         filename = f"{name}-{window.width()}x{window.height()}.png"
         screenshot = window.grab()
         assert screenshot.save(str(output / filename))
@@ -133,7 +136,8 @@ def main():
             if bounds.height() > label.height() + 3 or (
                 not label.wordWrap() and bounds.width() > label.width() + 3
             ):
-                record["bounds_issues"].append(dict(image=filename, text=label.text()))
+                record["bounds_issues"].append(dict(image=filename, text=label.text(),
+                    label_size=[label.width(),label.height()], text_size=[bounds.width(),bounds.height()]))
 
     sizes = [(1366, 768), (1920, 1080)]
     for size in sizes:
@@ -154,6 +158,13 @@ def main():
     QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
     assert window.monitor.camera.focus_rect is not None
     record["checks"].append("closeup_and_full_frame_toggle")
+    for _ in range(2):
+        QTest.mouseClick(window.monitor.zoom_plus, Qt.LeftButton)
+    assert window.monitor.camera.zoom_factor == 1.5
+    capture("monitoring-zoom", sizes[0])
+    for _ in range(2):
+        QTest.mouseClick(window.monitor.zoom_minus, Qt.LeftButton)
+    record["checks"].append("view_only_zoom")
     window.navigate(2)
     window.experiments.seconds.setValue(4)
     QTest.mouseClick(window.experiments.run_button, Qt.LeftButton)

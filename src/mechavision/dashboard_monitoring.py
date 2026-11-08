@@ -64,18 +64,20 @@ class KpiStrip(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(9)
         self.labels = {}
+        self.cards = {}
         for name, title, unit, caption in [
             ("angle", "Góc quay", "°", "Góc liên tục · EKF vật lý"),
             ("rpm", "Tốc độ quay", "vòng/phút", "Có dấu theo chiều quay"),
-            ("discrepancy", "Sai lệch động học", "px", "Quan sát so với mô hình"),
-            ("sigma", "Độ bất định", "°", "σθ · Độ lệch chuẩn góc"),
-            ("fps", "Nhịp xử lý", "khung/s", "Nhịp cập nhật của phiên"),
+            ("discrepancy", "Sai lệch động học", "px", "Quan sát / mô hình"),
+            ("sigma", "Độ bất định", "°", "σθ của bộ lọc"),
+            ("fps", "Nhịp xử lý", "khung/s", "Nhịp cập nhật phiên"),
             ("state", "Trạng thái", "", "Chất lượng theo dõi"),
         ]:
             card = KpiCard(title, unit, caption, state=name == "state")
             if name in ("angle", "rpm"):
                 card.value.setStyleSheet("color:#70def2;")
             self.labels[name] = card.value
+            self.cards[name] = card
             layout.addWidget(card, 1)
         self.labels["sigma"].setToolTip(
             "Độ lệch chuẩn góc do EKF ước lượng; cần kiểm chứng hiệu chuẩn riêng."
@@ -91,6 +93,17 @@ class KpiStrip(QWidget):
         for label in self.labels.values():
             label.setText("—")
         self.labels["state"].setStyleSheet("")
+        for card in self.cards.values():
+            card.sparkline.set_values([])
+
+    def update_trends(self, state):
+        for name, series in [("angle", "physics_angle"), ("rpm", "physics_rpm"),
+                             ("discrepancy", "discrepancy"), ("sigma", "physics_sigma"), ("fps", "fps")]:
+            self.cards[name].sparkline.set_values(state.series[series])
+            self.cards[name].sparkline.setToolTip(
+                ("Mô phỏng" if state.mode == "simulation" else "Dữ liệu nguồn phiên")
+                + " · Tối đa 90 mẫu gần nhất; không phải chỉ số đánh giá độ chính xác."
+            )
 
     def update_metrics(self, metrics):
         est = metrics["physics"]
@@ -151,6 +164,8 @@ class MonitoringPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
+        self.kpis = KpiStrip()
+        layout.addWidget(self.kpis)
         notice = QHBoxLayout()
         self.source_badge = badge("CHƯA CÓ NGUỒN", "muted")
         self.source_badge.setMinimumWidth(126)
@@ -188,17 +203,30 @@ class MonitoringPage(QWidget):
         self.focus_button.toggled.connect(self._update_focus)
         camera_layout.addWidget(self.camera, 1)
         key = QHBoxLayout()
-        for title, color in [
-            ("Tâm quay", "#d3e2ee"),
-            ("Chốt khuỷu", "#50d4ed"),
-            ("Khớp pít-tông", "#48d5b1"),
+        self.keypoint_labels = {}
+        for name, title, color in [
+            ("pivot", "Tâm quay", "#d3e2ee"),
+            ("crank", "Chốt khuỷu", "#50d4ed"),
+            ("piston", "Khớp pít-tông", "#48d5b1"),
         ]:
-            label = text_label("● " + title, "muted")
+            label = text_label(title + " · —", "micro")
+            self.keypoint_labels[name] = (label, title)
             label.setStyleSheet("color:" + color + ";")
             key.addWidget(label)
         key.addStretch()
         key.addWidget(self.focus_button)
         camera_layout.addLayout(key)
+        self.zoom_minus = QPushButton("−")
+        self.zoom_plus = QPushButton("+")
+        self.zoom_text = text_label("1.00×", "micro")
+        for button, change in [(self.zoom_minus, -.25), (self.zoom_plus, .25)]:
+            button.setObjectName("compact")
+            button.setFixedWidth(26)
+            button.clicked.connect(lambda checked=False, change=change: self._zoom(change))
+        key.addWidget(self.zoom_minus)
+        key.addWidget(self.zoom_text)
+        key.addWidget(self.zoom_plus)
+        self.zoom_plus.setToolTip("Phóng to phần hiển thị; giữ nguyên ảnh gốc và kết quả đo")
         twin, twin_layout = panel(
             "MÔ HÌNH ĐỘNG HỌC SỐ",
             trailing=text_label("2D · EKF vật lý", "muted"),
@@ -213,11 +241,9 @@ class MonitoringPage(QWidget):
         )
         self.media_splitter.addWidget(camera)
         self.media_splitter.addWidget(twin)
-        self.media_splitter.setSizes([650, 580])
+        self.media_splitter.setSizes([680, 500])
         layout.addWidget(self.media_splitter, 1)
 
-        self.kpis = KpiStrip()
-        layout.addWidget(self.kpis)
         bottom_widget = QWidget()
         bottom_widget.setFixedHeight(140)
         bottom_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -254,6 +280,10 @@ class MonitoringPage(QWidget):
         layout.addWidget(self.confidence_label)
         self._update_focus()
 
+    def _zoom(self, change):
+        self.camera.set_zoom(self.camera.zoom_factor + change)
+        self.zoom_text.setText(f"{self.camera.zoom_factor:.2f}×")
+
     def set_geometry(self, geometry):
         self._geometry = geometry
         self._update_focus()
@@ -275,6 +305,10 @@ class MonitoringPage(QWidget):
         self.camera.clear()
         self.twin.clear()
         self.kpis.clear()
+        self.camera.set_zoom(1)
+        self.zoom_text.setText("1.00×")
+        for label, title in self.keypoint_labels.values():
+            label.setText(title + " · —")
         self.source_badge.setText(SOURCE_LABELS[mode])
         set_tone(self.source_badge, "warning" if mode == "simulation" else "data")
         self.banner.setText(SOURCE_NOTICES[mode])
@@ -297,6 +331,13 @@ class MonitoringPage(QWidget):
         self.camera.set_frame(frame)
         self.twin.set_estimate(self._geometry, est)
         self.kpis.update_metrics(metrics)
+        self.kpis.update_trends(state)
+        for name, (label, title) in self.keypoint_labels.items():
+            point = obs.landmarks.get(name)
+            score = value_text(point.confidence, 2) if point is not None else "—"
+            label.setText(title + " · " + score)
+            label.setToolTip("Điểm tin cậy quan sát trên thang 0–1, không phải xác suất đúng. "
+                             + ("Quan sát tổng hợp mô phỏng." if state.mode == "simulation" else "Giá trị do detector cung cấp."))
         self.tracking_badge.setText(status_text(est.status).upper())
         set_tone(self.tracking_badge, STATUS_TONES.get(est.status, "muted"))
         self.camera_meta.setText(f"Khung {obs.frame_id} · {obs.timestamp:.2f} s")

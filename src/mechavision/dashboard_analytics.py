@@ -52,17 +52,20 @@ class AnalyticsPage(QWidget):
         self.rpm_plot = make_plot("Tốc độ quay", "vòng/phút")
         self.sigma_plot = make_plot("Độ bất định σθ", "°")
         self.discrepancy_plot = make_plot("Sai lệch động học", "px", legend=False)
+        self.fps_plot = make_plot("Nhịp xử lý", "khung/s", legend=False)
         for row, column, title, plot in [
-            (0, 0, "GÓC QUAY / SO SÁNH BA PHƯƠNG PHÁP", self.angle_plot),
-            (0, 1, "VẬN TỐC / BỘ LỌC THEO THỜI GIAN", self.rpm_plot),
-            (1, 0, "ĐỘ BẤT ĐỊNH / ƯỚC LƯỢNG CỦA BỘ LỌC", self.sigma_plot),
-            (1, 1, "ĐỘ NHẤT QUÁN / QUAN SÁT VÀ MÔ HÌNH", self.discrepancy_plot),
+            (0, 0, "GÓC QUAY / BA PHƯƠNG PHÁP", self.angle_plot),
+            (0, 2, "TỐC ĐỘ QUAY", self.rpm_plot),
+            (1, 0, "ĐỘ BẤT ĐỊNH σθ", self.sigma_plot),
+            (1, 1, "SAI LỆCH ĐỘNG HỌC", self.discrepancy_plot),
+            (1, 2, "NHỊP XỬ LÝ", self.fps_plot),
         ]:
             card, inner = panel(title)
             inner.addWidget(plot, 1)
-            grid.addWidget(card, row, column)
+            grid.addWidget(card, row, column, 1, 2 if plot is self.angle_plot else 1)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 1)
         grid.setRowStretch(0, 1)
         grid.setRowStretch(1, 1)
         layout.addLayout(grid, 1)
@@ -83,6 +86,7 @@ class AnalyticsPage(QWidget):
             "discrepancy": curve(
                 self.discrepancy_plot, "Sai lệch vị trí pít-tông", "#f0bf65", 1.8
             ),
+            "fps": curve(self.fps_plot, "Nhịp xử lý phiên", "#48d5b1", 1.8),
         }
         for check in (self.raw_check, self.temporal_check, self.physics_check):
             check.toggled.connect(self._update_visibility)
@@ -100,10 +104,12 @@ class AnalyticsPage(QWidget):
 
     @property
     def plots(self):
-        return [self.angle_plot, self.rpm_plot, self.sigma_plot, self.discrepancy_plot]
+        return [self.angle_plot, self.rpm_plot, self.sigma_plot, self.discrepancy_plot, self.fps_plot]
 
     def _update_visibility(self):
         for name, item in self.curves.items():
+            if name == "fps":
+                continue
             visible = (
                 self.raw_check.isChecked()
                 if name.startswith("raw")
@@ -124,6 +130,7 @@ class AnalyticsPage(QWidget):
         if state.metrics is None:
             return
         self.kpis.update_metrics(state.metrics)
+        self.kpis.update_trends(state)
         times = np.asarray(state.series["time"])
         times = times - times[0]
         for name, item in self.curves.items():

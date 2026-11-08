@@ -25,14 +25,18 @@ class MainWindow(QMainWindow):
         super().__init__()
         app = QApplication.instance()
         apply_application_theme(app)
-        font_id = QFontDatabase.addApplicationFont(str(_font(12).path))
+        font_path = Path(_font(12).path)
+        for sibling in ("seguisb.ttf", "segoeuib.ttf"):
+            if font_path.with_name(sibling).is_file():
+                QFontDatabase.addApplicationFont(str(font_path.with_name(sibling)))
+        font_id = QFontDatabase.addApplicationFont(str(font_path))
         if font_id >= 0:
             app.setFont(QFont(QFontDatabase.applicationFontFamilies(font_id)[0], 10))
         if not hasattr(app, "_mechavision_translator"):
             app._mechavision_translator = _VietnameseQtTranslator(app)
             app.installTranslator(app._mechavision_translator)
         QLocale.setDefault(QLocale("vi_VN"))
-        self.setWindowTitle("MechaVision AI — Dashboard V2")
+        self.setWindowTitle("MechaVision AI — Nền tảng nghiên cứu V3")
         self.setMinimumSize(1180, 680)
         available = self.screen().availableGeometry()
         self.resize(
@@ -192,6 +196,7 @@ class MainWindow(QMainWindow):
         self.state.phase = "connecting"
         self.monitor.set_geometry(Geometry() if mode == "simulation" else selected_geometry)
         self.monitor.prepare(mode)
+        self.shell.update_session(self.state)
         self.analysis.clear()
         self.settings.set_locked(True)
         self._session_row = self.experiments.add_session(
@@ -242,6 +247,7 @@ class MainWindow(QMainWindow):
             self.shell.system_badge.setText("ĐANG PHÂN TÍCH")
             set_tone(self.shell.system_badge, "valid")
         self.state.append(data["observation"], data["metrics"])
+        self.shell.update_session(self.state)
         if self._session_row is not None:
             self.experiments.update_session(self._session_row, self.state.sample_count)
         self.monitor.update_state(self.state, frame, twin)
@@ -294,6 +300,7 @@ class MainWindow(QMainWindow):
                 self.state.log_path,
             )
         self.analysis.update_state(self.state)
+        self.shell.update_session(self.state)
 
     def _render_image(self, label, frame):
         label.set_frame(frame)

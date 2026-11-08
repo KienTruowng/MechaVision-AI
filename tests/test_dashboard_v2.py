@@ -112,6 +112,39 @@ def test_initial_screen_has_no_fabricated_values(window):
     assert window.state.sample_count == 0
     assert window.experiments.results_table.rowCount() == 0
     assert window.analysis.curves["physics_angle"].getData()[0] is None
+    assert all(not card.sparkline.values for card in window.monitor.kpis.cards.values())
+    assert all("—" in label.text() for label, _ in window.monitor.keypoint_labels.values())
+
+
+def test_v3_trends_fps_and_sidebar_use_received_samples(window):
+    _, processor, obs = feed(window, 95)
+    window.navigate(1)
+    for name, series in [("angle", "physics_angle"), ("rpm", "physics_rpm"),
+                         ("sigma", "physics_sigma"), ("discrepancy", "discrepancy"), ("fps", "fps")]:
+        values = list(window.state.series[series])
+        np.testing.assert_allclose(window.monitor.kpis.cards[name].sparkline.values, values[-90:], equal_nan=True)
+    np.testing.assert_allclose(window.analysis.curves["fps"].getData()[1], list(window.state.series["fps"]))
+    assert "95 khung" in window.shell.sidebar_frames.text()
+    assert window.shell.sidebar_source.text() == "MÔ PHỎNG"
+    for name, (label, title) in window.monitor.keypoint_labels.items():
+        assert label.text() == title + f" · {obs.landmarks[name].confidence:.2f}"
+    processor.close()
+
+
+def test_v3_zoom_changes_only_view_and_is_bounded(window):
+    _, processor, _ = feed(window)
+    image = window.camera_label.image.copy()
+    metrics = window.state.metrics
+    for _ in range(8):
+        QTest.mouseClick(window.monitor.zoom_plus, Qt.LeftButton)
+    assert window.camera_label.zoom_factor == 2
+    assert window.monitor.zoom_text.text() == "2.00×"
+    assert window.camera_label.image == image
+    assert window.state.metrics is metrics
+    for _ in range(8):
+        QTest.mouseClick(window.monitor.zoom_minus, Qt.LeftButton)
+    assert window.camera_label.zoom_factor == 1
+    processor.close()
 
 
 def test_start_navigate_stop_and_restart_without_stale_values(window):

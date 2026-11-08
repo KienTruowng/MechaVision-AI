@@ -1,7 +1,8 @@
 """Thành phần hiển thị Dashboard V2; không chứa phép tính ước lượng."""
 
-from PySide6.QtCore import Qt, QRectF, QSize
-from PySide6.QtGui import QColor, QImage, QPainter, QPen, QFont
+import math
+from PySide6.QtCore import Qt, QRectF, QSize, QPointF
+from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPen, QFont
 from PySide6.QtWidgets import (
     QWidget,
     QFrame,
@@ -73,20 +74,93 @@ class KpiCard(QFrame):
     def __init__(self, title, unit, caption, state=False):
         super().__init__()
         self.setObjectName("kpi")
-        self.setMinimumWidth(130)
+        self.setMinimumWidth(138)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(4)
         top = QHBoxLayout()
         top.addWidget(text_label(title, "muted"))
         top.addStretch()
-        top.addWidget(text_label(unit, "eyebrow"))
         layout.addLayout(top)
         self.value = text_label("—", "kpi_state" if state else "kpi_value")
         self.value.setMinimumHeight(44 if not state else 32)
         self.value.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        layout.addWidget(self.value)
-        layout.addWidget(text_label(caption, "muted"))
+        value_row = QHBoxLayout()
+        value_row.setSpacing(4)
+        value_row.addWidget(self.value)
+        value_row.addStretch()
+        value_row.addWidget(text_label(unit, "unit"), 0, Qt.AlignBottom)
+        layout.addLayout(value_row)
+        self.sparkline = Sparkline()
+        if state:
+            self.sparkline.hide()
+        else:
+            layout.addWidget(self.sparkline)
+        self.caption = text_label(caption, "micro")
+        layout.addWidget(self.caption)
+
+
+class Sparkline(QWidget):
+    """Xu hướng chỉ từ mẫu đã nhận; giữ khoảng trống khi thiếu dữ liệu."""
+
+    def __init__(self, color="#56d8e6"):
+        super().__init__()
+        self.values = []
+        self.color = QColor(color)
+        self.setFixedHeight(20)
+        self.setMinimumWidth(20)
+        self.setToolTip("Tối đa 90 mẫu gần nhất của phiên hiện tại; giữ khoảng trống dữ liệu")
+
+    def set_values(self, values):
+        self.values = list(values)[-90:]
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        finite = [v for v in self.values if math.isfinite(v)]
+        if len(finite) < 2:
+            return
+        low, high = min(finite), max(finite)
+        span = high - low
+        path = QPainterPath()
+        connected = False
+        for index, value in enumerate(self.values):
+            if not math.isfinite(value):
+                connected = False
+                continue
+            x = 1 + index * (self.width() - 2) / max(1, len(self.values) - 1)
+            y = self.height() / 2 if span == 0 else 2 + (high - value) / span * (self.height() - 4)
+            if connected:
+                path.lineTo(x, y)
+            else:
+                path.moveTo(x, y)
+            connected = True
+        painter.setPen(QPen(self.color, 1.4))
+        painter.drawPath(path)
+
+
+class BrandMark(QWidget):
+    """Biểu trưng riêng: trục quay và liên kết cơ khí trong ô kỹ thuật."""
+
+    def __init__(self):
+        super().__init__()
+        self.setFixedSize(42, 42)
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setPen(QPen(QColor("#235263"), 1))
+        p.setBrush(QColor("#102d38"))
+        p.drawRoundedRect(QRectF(1, 1, 40, 40), 9, 9)
+        p.setPen(QPen(QColor("#43b5f4"), 3))
+        p.drawLine(11, 28, 18, 13)
+        p.setPen(QPen(QColor("#5ee2d0"), 3))
+        p.drawLine(18, 13, 32, 26)
+        p.setPen(QPen(QColor("#d7eef5"), 1.5))
+        p.setBrush(QColor("#102d38"))
+        for x, y in [(11, 28), (18, 13), (32, 26)]:
+            p.drawEllipse(QPointF(x, y), 3, 3)
 
 
 class ImageSurface(QWidget):
@@ -98,6 +172,7 @@ class ImageSurface(QWidget):
         self.detail = detail
         self.image = QImage()
         self.focus_rect = None
+        self.zoom_factor = 1.0
         self.setMinimumSize(180, 150)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -124,6 +199,10 @@ class ImageSurface(QWidget):
         self.focus_rect = rect
         self.update()
 
+    def set_zoom(self, factor):
+        self.zoom_factor = max(1.0, min(2.0, float(factor)))
+        self.update()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -134,6 +213,10 @@ class ImageSurface(QWidget):
                 clipped = source.intersected(self.focus_rect)
                 if not clipped.isEmpty():
                     source = clipped
+            if self.zoom_factor > 1:
+                center = source.center()
+                source.setSize(source.size() / self.zoom_factor)
+                source.moveCenter(center)
             size = source.size().scaled(self.size(), Qt.KeepAspectRatio)
             rect = QRectF(
                 (self.width() - size.width()) / 2,

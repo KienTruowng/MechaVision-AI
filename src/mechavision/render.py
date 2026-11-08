@@ -106,11 +106,16 @@ def twin_frame(geo,est,width=620,height=390):
     cv2.circle(img,O,19,(102,78,48),2,cv2.LINE_AA)
     cv2.circle(img,O,14,(54,38,22),-1,cv2.LINE_AA)
     for a,b,color,thickness in ((O,C,blue,13),(C,P,cyan,11)):
+        # Bóng đổ và biên kim loại chỉ tạo chiều sâu bản vẽ, không đổi tâm khớp.
+        shadow_a=(a[0]+3,a[1]+5);shadow_b=(b[0]+3,b[1]+5)
+        cv2.line(img,shadow_a,shadow_b,(15,10,5),thickness+9,cv2.LINE_AA)
         cv2.line(img,a,b,(55,37,18),thickness+6,cv2.LINE_AA)
         cv2.line(img,a,b,color,thickness,cv2.LINE_AA)
-        cv2.line(img,a,b,(218,209,187),2,cv2.LINE_AA)
+        cv2.line(img,a,b,(136,115,88),max(3,thickness-6),cv2.LINE_AA)
+        cv2.line(img,(a[0],a[1]-2),(b[0],b[1]-2),(238,225,199),1,cv2.LINE_AA)
     cv2.rectangle(img,(P[0]-22,P[1]-18),(P[0]+22,P[1]+18),(97,71,36),-1)
     cv2.rectangle(img,(P[0]-22,P[1]-18),(P[0]+22,P[1]+18),cyan,2)
+    cv2.rectangle(img,(P[0]-20,P[1]-16),(P[0]+20,P[1]-9),(182,158,113),-1)
     for dx in (-15,15):
         cv2.line(img,(P[0]+dx,P[1]-14),(P[0]+dx,P[1]+14),(168,138,83),2)
     for name,pt in (('O',O),('C',C),('S',P)):

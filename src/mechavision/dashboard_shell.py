@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QButtonGroup,
 )
-from .dashboard_widgets import text_label, badge
+from .dashboard_widgets import text_label, badge, BrandMark, panel
 
 PAGES = (
     ("Giám sát", "Quan sát cơ cấu và trạng thái ước lượng theo thời gian thực"),
@@ -62,19 +62,17 @@ class DashboardShell(QWidget):
         outer.setSpacing(0)
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(176)
+        sidebar.setFixedWidth(196)
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(14, 23, 14, 18)
         side.setSpacing(8)
         brand = QHBoxLayout()
-        mark = text_label("MV", "brand_icon")
-        mark.setAlignment(Qt.AlignCenter)
-        mark.setFixedSize(42, 42)
+        mark = BrandMark()
         brand.addWidget(mark)
         brand.addWidget(text_label("MECHA\nVISION", "brand"))
         side.addLayout(brand)
-        side.addWidget(text_label("AI  /  DASHBOARD V2.1", "eyebrow"))
-        side.addSpacing(29)
+        side.addWidget(text_label("NỀN TẢNG NGHIÊN CỨU · V3", "eyebrow"))
+        side.addSpacing(20)
         side.addWidget(text_label("KHÔNG GIAN LÀM VIỆC", "eyebrow"))
         side.addSpacing(6)
         self.nav_group = QButtonGroup(self)
@@ -91,15 +89,19 @@ class DashboardShell(QWidget):
             self.nav_buttons.append(button)
             side.addWidget(button)
         side.addStretch()
-        side.addWidget(text_label("THỊ GIÁC × ĐỘNG HỌC", "eyebrow"))
-        side.addWidget(
-            text_label(
-                "Nền tảng nghiên cứu\nƯớc lượng có ràng buộc vật lý", "muted", True
-            )
-        )
-        side.addSpacing(10)
+        session, session_layout = panel("TRẠM NGHIÊN CỨU")
+        self.sidebar_source = text_label("Chưa có dữ liệu", "muted", True)
+        session_layout.addWidget(self.sidebar_source)
+        self.sidebar_frames = text_label("— khung hình", "session_value")
+        session_layout.addWidget(self.sidebar_frames)
+        self.sidebar_time = text_label("Chưa có thời gian phiên", "micro", True)
+        session_layout.addWidget(self.sidebar_time)
         self.sidebar_status = badge("CHƯA CÓ PHIÊN", "muted")
-        side.addWidget(self.sidebar_status)
+        session_layout.addWidget(self.sidebar_status)
+        side.addWidget(session)
+        side.addSpacing(8)
+        side.addWidget(text_label("THỊ GIÁC × ĐỘNG HỌC", "eyebrow"))
+        side.addWidget(text_label("Mô phỏng không thay thế kiểm chứng trên cơ cấu thật.", "micro", True))
         outer.addWidget(sidebar)
 
         main = QVBoxLayout()
@@ -108,7 +110,7 @@ class DashboardShell(QWidget):
         top = QHBoxLayout()
         titles = QVBoxLayout()
         titles.setSpacing(3)
-        titles.addWidget(text_label("MECHAVISION AI  /  TRẠM NGHIÊN CỨU", "eyebrow"))
+        titles.addWidget(text_label("MECHAVISION AI  /  TRẠM NGHIÊN CỨU V3", "eyebrow"))
         self.page_title = text_label("Giám sát", "page_title")
         titles.addWidget(self.page_title)
         top.addLayout(titles)
@@ -141,6 +143,15 @@ class DashboardShell(QWidget):
         )
         main.addLayout(footer)
         outer.addLayout(main, 1)
+
+    def update_session(self, state):
+        from .dashboard_monitoring import SOURCE_LABELS
+
+        if state.sample_count or state.phase != "idle":
+            self.sidebar_source.setText(SOURCE_LABELS[state.mode])
+        self.sidebar_frames.setText(f"{state.sample_count:,} khung hình" if state.sample_count else "— khung hình")
+        times = state.series["time"]
+        self.sidebar_time.setText(f"Cửa sổ dữ liệu: {times[-1] - times[0]:.1f} s" if times else "Chưa có thời gian phiên")
 
     def select_page(self, index):
         self.stack.setCurrentIndex(index)
