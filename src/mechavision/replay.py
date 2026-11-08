@@ -1,8 +1,7 @@
-"""Research-grade real-data replay: exactly the same saved observations for all methods.
+"""Phát lại dữ liệu nghiên cứu: mọi phương pháp dùng cùng quan sát đã lưu.
 
-Ground truth MUST be independently collected, e.g. separately reviewed human
-annotations or reference encoder. A synthetic 'truth_rad_synthetic_only' column
-is deliberately NEVER used as real ground truth.
+Góc tham chiếu phải được thu độc lập, ví dụ nhãn đã kiểm tra riêng hoặc encoder.
+Không dùng cột mô phỏng truth_rad_synthetic_only làm tham chiếu thực.
 """
 from __future__ import annotations
 import csv
@@ -24,9 +23,9 @@ def _read_truth(path):
                 angle=math.radians(float(row['theta_deg']))
             elif row.get('theta_rad') not in (None,''):
                 angle=float(row['theta_rad'])
-            else:raise ValueError('Ground truth requires theta_deg or theta_rad')
+            else:raise ValueError('Dữ liệu tham chiếu cần theta_deg hoặc theta_rad')
             truth[int(row['frame'])]=angle
-    if not truth:raise ValueError('Ground truth is empty')
+    if not truth:raise ValueError('Dữ liệu tham chiếu trống')
     return truth
 
 
@@ -63,7 +62,7 @@ def replay_real(session_file:str,geometry_file:str,ground_truth_file:str,out_dir
                                     'sigma_theta_rad':est.sigma_theta,
                                     'crank_visible':int('crank' in landmarks),
                                     'piston_visible':int('piston' in landmarks)})
-    if not results:raise ValueError('No matched frame IDs in recording and ground truth')
+    if not results:raise ValueError('Không có mã khung hình khớp giữa bản ghi và dữ liệu tham chiếu')
     summary={}
     for name in methods:
         group=[r for r in results if r['method']==name]
@@ -80,7 +79,7 @@ def replay_real(session_file:str,geometry_file:str,ground_truth_file:str,out_dir
                 100*sum(r['abs_error_deg'] is not None for r in visible)/len(visible)
                 if visible else None),
         }
-    # Paired differences over exactly the same frames that both methods estimate.
+    # Hiệu số ghép cặp trên đúng các khung hình cả hai phương pháp cùng ước lượng.
     method_errors={name:{r['frame']:r['abs_error_deg'] for r in results
                          if r['method']==name and r['abs_error_deg'] is not None}
                    for name in methods}
@@ -92,8 +91,8 @@ def replay_real(session_file:str,geometry_file:str,ground_truth_file:str,out_dir
             'methods':summary,
             'paired_temporal_minus_physics_mae_deg':float(delta.mean()) if len(delta) else None,
             'paired_frame_count':len(delta),
-            'notes':'Positive paired difference means physics EKF had lower absolute error on the paired frames. '
-                    'Adjacent frames are correlated; evaluate significance across independent sessions.'}
+            'notes':'Hiệu số ghép cặp dương nghĩa là EKF vật lý có sai số tuyệt đối thấp hơn trên các khung hình ghép cặp. '
+                    'Các khung hình liền kề có tương quan; đánh giá ý nghĩa thống kê theo các phiên độc lập.'}
     with (output/'real_ablation.csv').open('w',encoding='utf-8',newline='') as f:
         writer=csv.DictWriter(f,fieldnames=list(results[0]))
         writer.writeheader();writer.writerows(results)

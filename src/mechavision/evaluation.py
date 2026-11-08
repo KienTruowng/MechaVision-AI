@@ -1,4 +1,4 @@
-"""Reproducible synthetic ablation. These figures are not real-engine benchmarks."""
+"""So sánh loại bỏ thành phần trên dữ liệu mô phỏng có thể tái lập; không đánh giá động cơ thật."""
 from __future__ import annotations
 import csv
 import json
@@ -12,7 +12,7 @@ from .estimators import RawVisualEstimator,MotionEKF
 
 def run_evaluation(seconds:float=24.0,fps:int=30,seed:int=42,
                    out_dir:str|Path|None=None,noise_px:float=3.0):
-    if seconds<=0 or fps<=0:raise ValueError("seconds and fps must be positive")
+    if seconds<=0 or fps<=0:raise ValueError("seconds và fps phải dương")
     geo=Geometry()
     sim=Simulator(geo,SimConfig(seed=seed,noise_px=noise_px))
     methods={
@@ -52,7 +52,7 @@ def run_evaluation(seconds:float=24.0,fps:int=30,seed:int=42,
         }
     result={"metadata":{"dataset":"SYNTHETIC_ONLY","seconds":seconds,"fps":fps,
                         "seed":seed,"noise_px":noise_px,"geometry":vars(geo),
-                        "warning":"No trained AI detector or physical ground-truth evaluation"},
+                        "warning":"Chưa có bộ nhận diện AI được huấn luyện hoặc đánh giá bằng tham chiếu đo thực tế"},
             "methods":summary}
     if out_dir is not None:
         output=Path(out_dir);output.mkdir(parents=True,exist_ok=True)

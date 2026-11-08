@@ -1,9 +1,9 @@
-"""Paired three-estimator evaluation on the *same recorded real observations*.
+"""Đánh giá ghép cặp ba bộ ước lượng trên cùng quan sát thực đã ghi.
 
-Scientific caveats:
-- Independent reference angles are supplied by a separate measurement method.
-- All parameters are fixed before test; do not tune on test-session labels.
-- Wrapped error cannot establish revolution-count accuracy.
+Lưu ý khoa học:
+- Góc tham chiếu độc lập phải được cung cấp bằng một phương pháp đo khác.
+- Cố định tham số trước kiểm tra, không tinh chỉnh bằng nhãn của tập kiểm tra.
+- Sai số góc theo chu kỳ không xác minh được độ chính xác số vòng quay.
 """
 from __future__ import annotations
 import csv
@@ -25,7 +25,7 @@ def real_ablation(session_file:str,truth_file:str,geometry_file:str,out_dir:str=
     with Path(truth_file).open(newline='',encoding='utf-8-sig') as fp:
         reader=csv.DictReader(fp)
         if not reader.fieldnames or 'frame' not in reader.fieldnames or not ({'theta_deg','theta_rad'}&set(reader.fieldnames)):
-            raise ValueError('Ground truth must contain frame,theta_deg or frame,theta_rad')
+            raise ValueError('Dữ liệu tham chiếu phải có frame,theta_deg hoặc frame,theta_rad')
         truth={}
         for row in reader:
             if not row.get('frame'):continue
@@ -61,7 +61,7 @@ def real_ablation(session_file:str,truth_file:str,geometry_file:str,out_dir:str=
                                 'reference_theta_rad':reference,'abs_error_deg':error,
                                 'crank_visible':int('crank' in landmarks),
                                 'piston_visible':int('piston' in landmarks)})
-    if not outrows:raise ValueError('No overlapping frame IDs between recorded observations and reference labels')
+    if not outrows:raise ValueError('Không có mã khung hình chung giữa quan sát đã ghi và nhãn tham chiếu')
     summary={}
     for name in methods:
         group=[row for row in outrows if row['method']==name]
@@ -80,9 +80,9 @@ def real_ablation(session_file:str,truth_file:str,geometry_file:str,out_dir:str=
     result={'dataset':'RECORDED_OBSERVATIONS_INDEPENDENT_REFERENCE',
             'source_session':session_file,'ground_truth':truth_file,
             'geometry':geometry_file,'methods':summary,
-            'caveats':['Angular accuracy is wrapped modulo 360 degrees',
-                       'Ground-truth method and its precision must be documented',
-                       'Uncertainty calibration and inference latency need separate tests']}
+            'caveats':['Sai số góc được quy về chu kỳ 360 độ',
+                       'Phải ghi rõ phương pháp đo tham chiếu và độ chính xác của phương pháp',
+                       'Cần kiểm tra riêng hiệu chuẩn độ bất định và độ trễ suy luận']}
     dest=Path(out_dir);dest.mkdir(parents=True,exist_ok=True)
     with (dest/'real_ablation.csv').open('w',encoding='utf-8',newline='') as f:
         w=csv.DictWriter(f,fieldnames=list(outrows[0].keys()));w.writeheader();w.writerows(outrows)

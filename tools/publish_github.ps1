@@ -1,21 +1,21 @@
-param(
+﻿param(
     [string]$Repository = 'MechaVision-AI',
     [ValidateSet('private','public')][string]$Visibility = 'private'
 )
 $ErrorActionPreference = 'Stop'
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot '..'))
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'Install Git for Windows first.' }
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'Install GitHub CLI and run gh auth login first.' }
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'Hãy cài Git cho Windows trước.' }
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'Hãy cài GitHub CLI và chạy gh auth login trước.' }
 gh auth status
-if ($LASTEXITCODE -ne 0) { throw 'Sign in with gh auth login.' }
+if ($LASTEXITCODE -ne 0) { throw 'Đăng nhập bằng gh auth login.' }
 $account = gh api user --jq .login
-if ($account -ne 'KienTruowng') { throw "Signed in as '$account', expected 'KienTruowng'." }
+if ($account -ne 'KienTruowng') { throw "Đang đăng nhập bằng '$account', cần tài khoản 'KienTruowng'." }
 if (-not (Test-Path '.git')) { git init -b main }
 git add .
 git diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {
-    git commit -m 'Initial MechaVision AI research workbench'
-    if ($LASTEXITCODE -ne 0) { throw 'Configure git user.name and user.email, then rerun.' }
+    git commit -m 'Khởi tạo bộ công cụ nghiên cứu MechaVision AI'
+    if ($LASTEXITCODE -ne 0) { throw 'Cấu hình git user.name và user.email rồi chạy lại.' }
 }
 git branch -M main
 $full = "KienTruowng/$Repository"
@@ -27,5 +27,5 @@ if ($LASTEXITCODE -eq 0) {
 } else {
     gh repo create $full "--$Visibility" --source . --remote origin --push
 }
-if ($LASTEXITCODE -ne 0) { throw 'GitHub publish failed. Check the output above.' }
-Write-Host "Published: https://github.com/$full" -ForegroundColor Green
+if ($LASTEXITCODE -ne 0) { throw 'Xuất bản lên GitHub thất bại. Hãy xem thông báo ở trên.' }
+Write-Host "Đã xuất bản: https://github.com/$full" -ForegroundColor Green

@@ -1,4 +1,4 @@
-"""CSV session logger. Missing measurements are left blank, not zero."""
+"""Ghi phiên CSV. Phép đo thiếu được để trống, không thay bằng số không."""
 from __future__ import annotations
 import csv
 from pathlib import Path

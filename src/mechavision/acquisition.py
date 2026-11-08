@@ -1,4 +1,4 @@
-"""Camera/video acquisition with relative timestamps for recorded clips."""
+"""Thu nhận camera/video; dùng dấu thời gian tương đối cho video đã ghi."""
 from __future__ import annotations
 import time
 import cv2
@@ -8,7 +8,7 @@ class FrameSource:
         self.source=source
         self.cap=cv2.VideoCapture(source)
         if not self.cap.isOpened():
-            raise RuntimeError(f'Cannot open camera/video source: {source}')
+            raise RuntimeError(f'Không mở được nguồn camera/video: {source}')
         if isinstance(source,int):
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH,width)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT,height)

@@ -1,16 +1,12 @@
-# MECHAVISION AI — BẮT ĐẦU Ở ĐÂY
+# MechaVision AI — Hướng dẫn bắt đầu
 
-## Bạn nhận được gì?
+Dự án có mô hình động học, EKF có ràng buộc vật lý, bộ mô phỏng, ba phương pháp đối chứng, camera/video, dấu màu/ArUco, tích hợp YOLO Pose, bảng điều khiển máy tính, nhật ký CSV và công cụ dữ liệu/đánh giá. Xem [README](README.md) và [quy trình nghiên cứu](docs/RESEARCH_PROTOCOL.md) để hiểu giới hạn.
 
-Dự án Python đầy đủ mã nguồn: mô hình động học, bộ lọc EKF có ràng buộc vật lý, bộ mô phỏng, ba phương pháp đối chứng, camera/video, đo bằng marker màu/ArUco hoặc model YOLO Pose tự huấn luyện, dashboard desktop, lưu phiên CSV, công cụ tạo nhãn/huấn luyện và thí nghiệm đánh giá. Xem `README.md` và `docs/RESEARCH_PROTOCOL.md` để hiểu giới hạn nghiên cứu.
+**Chưa kèm trọng số được huấn luyện trên động cơ thực và chưa có kết quả đo cơ cấu thực được kiểm chứng.** Cần quay video, gán nhãn, đo hình học và huấn luyện trước khi đưa ra tuyên bố về nhận diện AI.
 
-**Bản phát hành chưa chứa trọng số AI cho động cơ thật và chưa có dữ liệu đo thực tế.** Bạn cần quay video, gán nhãn, đo thông số hình học và huấn luyện; không được tuyên bố hệ thống đã nhận diện chính xác LEGO thật trước khi thử.
+## Mở mô phỏng trên Windows
 
-## Mở ứng dụng mô phỏng ngay trên Windows
-
-1. Giải nén ZIP vào thư mục không dấu, ví dụ `D:\Projects\MechaVision-AI`.
-2. Cài Python 3.12, mở PowerShell ở thư mục vừa giải nén.
-3. Chạy:
+Tải hoặc giải nén mã nguồn, cài Python 3.12 rồi mở PowerShell trong thư mục dự án:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -19,26 +15,26 @@ py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m mechavision gui
 ```
 
-4. Trong màn hình, `Source = simulation` → `Start analysis`. Dòng **SIMULATED DATA** nghĩa là dữ liệu ảo, không phải camera thật.
+Chọn **Nguồn → Mô phỏng → Bắt đầu phân tích**. Nhãn **DỮ LIỆU MÔ PHỎNG** xác định dữ liệu tổng hợp. **Đang theo dõi**, **Đang dự báo**, **Mất dấu** và **Chưa khởi tạo** mô tả bộ ước lượng, không xác nhận nguồn dữ liệu là đo thực. Khi không đủ độ tin cậy, góc/tốc độ được để trống.
 
-## Chạy thử thuật toán và kiểm thử
+## Kiểm thử và chạy thuật toán
 
 ```powershell
 .venv\Scripts\python.exe -m mechavision evaluate --seconds 24 --fps 30 --out outputs/evaluation
 .venv\Scripts\python.exe -m pytest -q
 ```
 
-Kết quả trong `outputs/evaluation/summary.json` và `ablation.csv`. Con số chỉ đo trên mô phỏng.
+Kết quả ở `outputs/evaluation/summary.json` và `ablation.csv`, chỉ đo trên mô phỏng.
 
-## Bắt đầu với động cơ thật
+## Bắt đầu đo cơ cấu thực
 
-1. Tháo cụm động cơ, xác minh loại cơ cấu và các khớp nhìn thấy được.
-2. Gắn camera cố định, thu 3+ video ngắn ở các tốc độ/ánh sáng khác nhau.
-3. Dùng `mechavision calibrate --source 0 --out outputs/calibration.json` để nhấn bốn điểm hình học.
-4. Nếu gắn được marker **chính xác lên tâm các khớp**, có thể dùng ArUco hoặc sticker đỏ/xanh lá/xanh dương để thử nghiệm trước khi huấn luyện AI.
-5. Dùng `mechavision extract`, `annotate`, `split`, `train`, `validate` theo README để huấn luyện YOLO Pose trên động cơ thật. Có thể dùng đường nhanh `annotate --video` và `init-dataset`.
-6. Chạy camera live với dữ liệu thực và checkpoint của bạn; thu bảng ground truth độc lập để đánh giá.
+1. Xác minh loại cơ cấu và tâm các khớp có thể quan sát.
+2. Gá camera cố định; thu ít nhất ba phiên độc lập với nhiều tốc độ/điều kiện sáng.
+3. Chạy `mechavision calibrate --source 0 --out outputs/calibration.json`, chọn bốn điểm rồi nhấn Enter.
+4. Nếu gắn dấu chuẩn chính xác lên tâm khớp, dùng ArUco hoặc dấu đỏ/xanh lá/xanh dương để tạo đối chứng trước khi huấn luyện AI.
+5. Thực hiện `extract`, `annotate --folder`, `split`, `train`, `validate` theo README. Đường `annotate --video` có phím điều khiển khác và cần tự tổ chức các tập theo phiên.
+6. Chọn **Camera trực tiếp** hoặc **Video đã ghi** trong giao diện, cung cấp đúng tệp hiệu chuẩn và trọng số nếu dùng YOLO Pose. Thu góc tham chiếu độc lập để đánh giá.
 
-## Đưa lên GitHub
+## Làm việc với GitHub
 
-Hiện không kèm liên kết kho đã xuất bản. Tạo **repository trống** `MechaVision-AI` trên tài khoản GitHub của bạn rồi dùng lệnh `git init`, `git add`, `git commit`, `git remote add origin`, `git push` ở cuối `README.md` để xuất bản. Sau khi đó mới dùng `git clone` để tải từ GitHub.
+Repository hiện có: [KienTruowng/MechaVision-AI](https://github.com/KienTruowng/MechaVision-AI). Xem [hướng dẫn GitHub](PUSH_TO_GITHUB_VI.md) để tải mã và tạo nhánh/Pull Request. Không cần khởi tạo lại Git cho bản đã được clone.

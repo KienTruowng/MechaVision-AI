@@ -1,53 +1,53 @@
-# Research protocol (bản thiết kế học thuật)
+# Quy trình nghiên cứu
 
-## Question and falsifiable hypotheses
+## Câu hỏi và giả thuyết có thể kiểm chứng
 
-**RQ:** Does adding physically meaningful slider-crank measurement constraints to a temporal visual estimator improve angle reconstruction on *previously unseen* real-video sessions with noise, partial occlusions and varying speed?
+**Câu hỏi nghiên cứu:** Việc bổ sung ràng buộc phép đo có ý nghĩa vật lý của cơ cấu tay quay–con trượt vào bộ ước lượng thị giác theo thời gian có cải thiện tái dựng góc trên các phiên video thực **chưa từng dùng để huấn luyện/tinh chỉnh**, khi có nhiễu, che khuất một phần và tốc độ biến thiên hay không?
 
-- H1: The physics-informed EKF reduces angular MAE/RMSE vs the same EKF using crank landmarks alone on held-out data.
-- H2: With a temporary loss of crank observations but retained piston observations, the method improves valid-state coverage without a disproportionate rise in error.
-- H3: Added constraints should not substantially increase end-to-end inference latency; measure rather than assume.
+- **H1:** EKF có ràng buộc vật lý giảm MAE/RMSE góc so với cùng EKF chỉ dùng chốt khuỷu trên dữ liệu giữ lại.
+- **H2:** Khi tạm mất quan sát chốt khuỷu nhưng còn quan sát pít-tông, phương pháp tăng tỷ lệ có trạng thái hợp lệ mà không làm sai số tăng quá mức.
+- **H3:** Ràng buộc bổ sung không làm tăng đáng kể độ trễ toàn trình; cần đo để kết luận.
 
-**Null hypotheses:** no improvement or a worse tradeoff at the same conditions. Report negative results honestly.
+**Giả thuyết không:** không cải thiện hoặc đánh đổi kém hơn trong cùng điều kiện. Phải báo cáo trung thực cả kết quả âm tính.
 
-## Mathematical model
+## Mô hình toán học
 
-For an ideal offset slider crank with measured radius r, rod length l and slider rail offset e, piston joint coordinate along the positive axis is
+Với tay quay–con trượt lý tưởng có độ lệch ray, bán kính đo được `r`, chiều dài thanh truyền `l`, độ lệch `e`, vị trí khớp pít-tông theo chiều dương trục trượt là:
 
 \[x(\theta)=r\cos\theta+\sqrt{l^2-(e-r\sin\theta)^2}.\]
 
-The state \(s_t=[\theta_t,\omega_t]^T\) evolves under a constant-velocity local model plus Gaussian acceleration noise:
+Trạng thái \(s_t=[\theta_t,\omega_t]^T\) tiến triển theo mô hình vận tốc cục bộ không đổi cộng nhiễu gia tốc Gaussian:
 
 \[s_{t+1}=\begin{bmatrix}1&\Delta t\\0&1\end{bmatrix}s_t+w_t.\]
 
-The visual observation function predicts crank-pin image location and, in the constrained model, piston-rod joint image location from the same state. EKF prediction, innovation, gating, and Joseph-form covariance update are implemented in `estimators.py`. The temporal baseline uses *the same process model, noise choices and crank measurements*, but excludes the piston measurement. This isolates the additional geometry-derived information. The raw baseline infers crank angle from a detected rotating pin relative to the pivot.
+Hàm quan sát dự báo vị trí ảnh của chốt khuỷu và, trong mô hình ràng buộc, khớp thanh truyền–pít-tông từ cùng trạng thái. `estimators.py` thực hiện dự báo EKF, sai lệch đổi mới, cổng loại ngoại lai và cập nhật hiệp phương sai dạng Joseph. Đối chứng theo thời gian dùng **cùng mô hình quá trình, lựa chọn nhiễu và phép đo chốt khuỷu**, nhưng bỏ phép đo pít-tông để tách ảnh hưởng của thông tin hình học bổ sung. Đối chứng trực tiếp suy góc từ chốt quay so với tâm quay.
 
-**Important distinction:** using a known geometric observation function is not automatically a newly invented optimization algorithm. The academic contribution must be the validated adaptation to the chosen constrained-vision problem and evidence from proper controlled studies.
+Áp dụng hàm quan sát hình học đã biết không đồng nghĩa với phát minh thuật toán tối ưu mới. Đóng góp học thuật cần dựa trên cách thích nghi với bài toán thị giác được chọn và bằng chứng từ nghiên cứu có đối chứng.
 
-## Experimental design
+## Thiết kế thực nghiệm
 
-- Use 3+ distinct *acquisition sessions* under each condition, varied by start angle/speed and light levels. Keep train/val/test session groups disjoint.
-- Conditions: nominal, illumination change, varying speed + reversal, occluded crank with piston visible, occluded piston with crank visible, simultaneous occlusion (abstention test).
-- Collect true or independently measured crank angle and uncertainty per selected frame. Do not rely on synthetic simulator truth in real experiments.
-- Collect independent pixel annotations for the pivot, crank pin and rod/piston joint to assess keypoint error; report AI detection precision and keypoint displacement separately from state estimation.
-- Measure angle MAE/RMSE/p95, valid-prediction coverage, false valid predictions under occlusion, latency (camera acquisition → result), p95 latency, FPS, memory and VRAM use. Optional confidence calibration analysis.
-- Distinguish angular errors modulo 360° from **unwrapped** cycle counting errors. The former cannot validate number of revolutions.
-- Report the same measurement stream through all three estimators (paired experiment), with bootstrap confidence intervals by **session**, not independent adjacent frame resampling.
-- Tune thresholds and filter parameters using training/validation data only, freeze before final test.
+- Dùng từ ba phiên thu nhận độc lập trở lên cho mỗi điều kiện; thay đổi góc bắt đầu, tốc độ, ánh sáng. Không để phiên quay xuất hiện đồng thời trong train/val/test.
+- Các điều kiện: bình thường; đổi ánh sáng; đổi tốc độ/đảo chiều; che chốt khuỷu nhưng thấy pít-tông; che pít-tông nhưng thấy chốt khuỷu; che cả hai để kiểm tra khả năng ngừng trả ước lượng.
+- Thu góc khuỷu và độ bất định tham chiếu bằng phép đo độc lập cho các khung được chọn. Không dùng giá trị thật của bộ mô phỏng trong thí nghiệm cơ cấu thực.
+- Thu nhãn pixel độc lập cho tâm quay, chốt khuỷu, khớp thanh truyền–pít-tông. Báo cáo chất lượng nhận diện AI và sai lệch điểm riêng với chất lượng ước lượng trạng thái.
+- Đo MAE/RMSE/phân vị 95% sai số góc, tỷ lệ có dự báo hợp lệ, dự báo bị coi là hợp lệ sai khi che khuất, độ trễ camera → kết quả, phân vị 95% độ trễ, FPS, RAM và VRAM. Có thể phân tích hiệu chuẩn độ bất định.
+- Phân biệt sai số góc theo chu kỳ 360° với sai số **đếm vòng liên tục**; sai số theo chu kỳ không xác minh số vòng.
+- Cho cả ba bộ ước lượng dùng cùng luồng phép đo trong thí nghiệm ghép cặp. Ước lượng khoảng tin cậy bootstrap theo **phiên**, không coi các khung hình liền kề là mẫu độc lập.
+- Chỉ chỉnh ngưỡng/tham số bằng dữ liệu huấn luyện và xác thực; cố định trước lần kiểm tra cuối.
 
-## Explicit limitations and failure cases
+## Giới hạn và trường hợp thất bại
 
-- Offset slider–crank model applies only if kinematics genuinely match the mechanism. Analyze gears, nonplanar parts and piston joint location before building a final scientific claim.
-- RGB camera projection needs calibration; 2D near-orthographic approximation is not generally valid under oblique viewpoints. A homography is a possible extension.
-- Crankpin occlusion near dead center may make piston-based angle correction weak or ambiguous. A multi-hypothesis tracker is a stretch goal, not promised behavior.
-- Stopping or reversing a manually driven engine is **not** mechanical damage. This implementation provides consistency measurements and tracking quality; it does not diagnose industrial faults.
-- Synthetic results are smoke tests only and never evidence that the trained detector or physical experiment succeeds.
+- Mô hình tay quay–con trượt lệch tâm chỉ áp dụng khi đúng động học cơ cấu. Cần xem xét bánh răng, bộ phận không phẳng và vị trí khớp pít-tông trước khi đưa ra kết luận.
+- Phép chiếu camera RGB cần hiệu chuẩn; xấp xỉ gần trực giao 2D không luôn đúng với góc nhìn xiên. Homography là hướng mở rộng.
+- Khi che chốt khuỷu gần điểm chết, hiệu chỉnh góc từ pít-tông có thể yếu hoặc nhập nhằng. Theo dõi đa giả thuyết là hướng phát triển, chưa phải khả năng đã có.
+- Dừng/đảo chiều động cơ quay tay **không phải hư hỏng**. Hệ thống cung cấp độ nhất quán với mô hình và chất lượng theo dõi, chưa chẩn đoán lỗi công nghiệp.
+- Kết quả mô phỏng chỉ kiểm tra vận hành phần mềm, không chứng minh thành công của bộ nhận diện đã huấn luyện hoặc thí nghiệm vật lý.
 
-## Milestones
+## Các mốc triển khai
 
-1. Verify physically visible, unambiguous points and geometry from user hardware; reject invalid geometry.
-2. Capture data and establish independent labels/measurement protocol.
-3. Build and train custom keypoint network; evaluate against OpenCV/ArUco reference when appropriate.
-4. Evaluate temporal EKF and physics EKF on identical saved observations.
-5. Add robust real-time software, dashboard and session logging; benchmark laptop performance.
-6. Repeat experiments, analyze errors and compose the thesis with reproducible scripts and limitations.
+1. Xác minh điểm nhìn thấy rõ và hình học trên thiết bị thực; loại hình học không phù hợp.
+2. Thu dữ liệu, thiết lập nhãn độc lập và quy trình đo tham chiếu.
+3. Xây dựng, huấn luyện mạng điểm đặc trưng riêng; đối chiếu OpenCV/ArUco khi thích hợp.
+4. Đánh giá EKF theo thời gian và EKF vật lý trên cùng quan sát đã lưu.
+5. Hoàn thiện vận hành thời gian thực, bảng điều khiển và nhật ký; đo hiệu năng máy đích.
+6. Lặp thí nghiệm, phân tích lỗi và viết luận văn kèm lệnh tái lập, kết quả và giới hạn.

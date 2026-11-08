@@ -1,7 +1,7 @@
-"""Evaluate real camera estimates against INDEPENDENT reference angles by frame ID.
+"""Đối chiếu ước lượng camera với góc tham chiếu ĐỘC LẬP theo mã khung hình.
 
-Ground truth CSV format: frame,theta_deg (or frame,theta_rad).
-Important: labels must NOT be produced using the same estimator being assessed.
+CSV tham chiếu: frame,theta_deg (hoặc frame,theta_rad).
+Không tạo nhãn bằng chính bộ ước lượng đang được đánh giá.
 """
 from __future__ import annotations
 import csv
@@ -16,7 +16,7 @@ def evaluate_recording(session_file:str,ground_truth_file:str,out:str|None=None)
     with open(ground_truth_file,encoding='utf-8-sig',newline='') as f:
         reader=csv.DictReader(f)
         if not reader.fieldnames or 'frame' not in reader.fieldnames or not ({'theta_deg','theta_rad'}&set(reader.fieldnames)):
-            raise ValueError('Ground truth needs frame,theta_deg OR frame,theta_rad')
+            raise ValueError('Dữ liệu tham chiếu cần frame,theta_deg HOẶC frame,theta_rad')
         ground={}
         for row in reader:
             if not row['frame']:continue
@@ -33,14 +33,14 @@ def evaluate_recording(session_file:str,ground_truth_file:str,out:str|None=None)
         error=abs(math.degrees(wrap_angle(angle-ground[frame]))) if angle is not None else None
         aligned.append({'frame':frame,'status':row.get('status'),'estimate_rad':angle,
                         'ground_truth_rad':ground[frame],'abs_error_deg':error})
-    if not aligned:raise ValueError('No aligned frame IDs between session and ground truth')
+    if not aligned:raise ValueError('Không có mã khung hình khớp giữa phiên đo và dữ liệu tham chiếu')
     values=np.array([r['abs_error_deg'] for r in aligned if r['abs_error_deg'] is not None],dtype=float)
     report={'dataset':'INDEPENDENT_REAL_GROUND_TRUTH','num_reference_frames':len(aligned),
             'num_estimates':len(values),'coverage_pct':100*len(values)/len(aligned),
             'mae_deg':float(values.mean()) if len(values) else None,
             'rmse_deg':float(np.sqrt(np.mean(values*values))) if len(values) else None,
             'p95_abs_error_deg':float(np.percentile(values,95)) if len(values) else None,
-            'limitations':'Accuracy applies only to annotated frames; camera and annotator error remain.'}
+            'limitations':'Độ chính xác chỉ áp dụng cho khung hình có nhãn; vẫn có sai số camera và người gán nhãn.'}
     if out:
         path=Path(out);path.parent.mkdir(parents=True,exist_ok=True)
         path.write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
@@ -49,13 +49,13 @@ def evaluate_recording(session_file:str,ground_truth_file:str,out:str|None=None)
 
 def evaluate_keypoints(dataset_dir:str,mode:str='yolo',weights:str|None=None,
                        split:str='test',device:str='cpu',threshold_px:float=10):
-    """Independent held-out manual-pose-label error with explicit missing-rate."""
+    """Sai số điểm so với nhãn thủ công của tập giữ lại, có thống kê tỷ lệ bỏ sót."""
     import cv2
     from .detection import make_detector
     from .dataset import KEYPOINT_NAMES
     base=Path(dataset_dir)
     images=sorted([*(base/'images'/split).glob('*.jpg'),*(base/'images'/split).glob('*.png')])
-    if not images:raise ValueError(f'No images in {base/"images"/split}')
+    if not images:raise ValueError(f'Không có ảnh trong {base/"images"/split}')
     detector=make_detector(mode,weights,device)
     errs=[];per={k:[] for k in KEYPOINT_NAMES};total=found=0
     for i,img in enumerate(images):
@@ -65,7 +65,7 @@ def evaluate_keypoints(dataset_dir:str,mode:str='yolo',weights:str|None=None,
         target=base/'labels'/split/(img.stem+'.txt')
         if not target.exists():continue
         raw=target.read_text(encoding='utf-8').strip().split()
-        if len(raw)!=14:raise ValueError(f'Invalid pose label {target}')
+        if len(raw)!=14:raise ValueError(f'Nhãn điểm đặc trưng không hợp lệ {target}')
         obs=detector.detect(frame,float(i),i)
         for j,name in enumerate(KEYPOINT_NAMES):
             x,y,v=map(float,raw[5+j*3:8+j*3])
@@ -82,4 +82,4 @@ def evaluate_keypoints(dataset_dir:str,mode:str='yolo',weights:str|None=None,
             'pck_at_threshold':float(np.mean(np.asarray(errs)<=threshold_px)) if errs else None,
             'threshold_px':threshold_px,
             'per_keypoint_mae_px':{k:float(np.mean(v)) if v else None for k,v in per.items()},
-            'note':'Missing detections are counted in recall; PCK is conditional on detections.'}
+            'note':'Điểm bỏ sót được tính trong recall; PCK chỉ tính trên điểm đã phát hiện.'}

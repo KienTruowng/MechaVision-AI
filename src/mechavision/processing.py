@@ -1,4 +1,4 @@
-"""One observational pipeline, three independent estimators, CSV logging."""
+"""Một luồng quan sát, ba bộ ước lượng độc lập, ghi nhật ký CSV."""
 from __future__ import annotations
 import time
 import math

@@ -1,10 +1,11 @@
-"""Dataset tools for custom single-mechanism, three-keypoint YOLO pose.
+"""Công cụ dữ liệu YOLO Pose cho một cơ cấu và ba điểm đặc trưng.
 
-Landmark order: fixed pivot, rotating crank pin, piston rod joint.
-Labels are human clicks and are not estimated by the physics algorithm.
-Assign whole recording sessions to train or val; NEVER shuffle adjacent frames.
+Thứ tự điểm: tâm quay cố định, chốt khuỷu, khớp thanh truyền–pít-tông.
+Nhãn do người dùng nhấp, không được suy ra từ thuật toán vật lý.
+Chia tập theo toàn bộ phiên quay; không trộn các khung hình liền kề.
 """
 from __future__ import annotations
+from .i18n import put_text, KEYPOINT_LABELS
 from pathlib import Path
 import cv2
 import numpy as np
@@ -13,10 +14,10 @@ KEYPOINT_NAMES=('pivot','crank','piston')
 
 
 def yolo_pose_line(points:list[tuple[int,int]|None],width:int,height:int,padding:float=.08)->str:
-    if len(points)!=3:raise ValueError('Exactly three keypoints required')
-    if width<=0 or height<=0:raise ValueError('Image dimensions must be positive')
+    if len(points)!=3:raise ValueError('Cần đúng ba điểm đặc trưng')
+    if width<=0 or height<=0:raise ValueError('Kích thước ảnh phải dương')
     visible=[(float(x),float(y)) for v in points if v is not None for x,y in [v]]
-    if not visible:raise ValueError('At least one visible keypoint is required')
+    if not visible:raise ValueError('Cần ít nhất một điểm đặc trưng nhìn thấy được')
     xs=[x for x,_ in visible];ys=[y for _,y in visible]
     x0=min(xs);x1=max(xs);y0=min(ys);y1=max(ys)
     padx=max(15.,(x1-x0)*padding);pady=max(15.,(y1-y0)*padding)
@@ -29,7 +30,7 @@ def yolo_pose_line(points:list[tuple[int,int]|None],width:int,height:int,padding
         if p is None:tokens.extend(['0.000000','0.000000','0'])
         else:
             x,y=p
-            if not 0<=x<width or not 0<=y<height:raise ValueError('Clicked point outside image')
+            if not 0<=x<width or not 0<=y<height:raise ValueError('Điểm được chọn nằm ngoài ảnh')
             tokens.extend([f'{x/width:.6f}',f'{y/height:.6f}','2'])
     return ' '.join(tokens)+'\n'
 
@@ -44,31 +45,31 @@ def initialize_dataset(root:str|Path)->Path:
           "names:\n  0: slider_crank_mechanism\n")
     (root/'dataset.yaml').write_text(yaml,encoding='utf-8')
     (root/'ANNOTATION_GUIDE.md').write_text(
-        '# Landmark protocol\n\n'
-        '0 pivot: physical crank rotation center; 1 crank: physical crank pin center; '
-        '2 piston: joint between connecting rod and slider.\n\n'
-        'Click only physically visible joint centers. Leave occluded points missing. '
-        'A marker center displaced from the real joint requires a geometric offset model; '
-        'the current estimator assumes coincidence.\n\n'
-        'Separate **recording sessions** between train and val to avoid temporal leakage. '
-        'Use a separate test session never used for training or tuning.\n',encoding='utf-8')
+        '# Quy trình gán nhãn điểm đặc trưng\n\n'
+        '0 pivot: tâm quay vật lý; 1 crank: tâm chốt khuỷu vật lý; '
+        '2 piston: khớp giữa thanh truyền và con trượt.\n\n'
+        'Chỉ chọn tâm khớp nhìn thấy được. Để trống điểm bị che. '
+        'Tâm dấu chuẩn lệch tâm khớp cần mô hình hiệu chỉnh độ lệch; '
+        'bộ ước lượng hiện tại giả định hai tâm trùng nhau.\n\n'
+        'Tách **phiên quay** giữa train và val để tránh rò rỉ dữ liệu theo thời gian. '
+        'Dùng phiên kiểm tra riêng, không dùng để huấn luyện hoặc tinh chỉnh.\n',encoding='utf-8')
     return root/'dataset.yaml'
 
 
 def annotate_video(video:str,root:str,split:str='train',session:str='session01',stride:int=10):
-    """OpenCV interactive click-label-save loop.
+    """Vòng lặp gán nhãn bằng OpenCV.
 
-    Left click sets the next landmark in pivot/crank/piston order. 1/2/3 select
-    the landmark explicitly; right click clears selected landmark. S saves,
-    N skips, Q quits. Skipped frames never produce inferred labels.
+    Nhấp trái đặt điểm tiếp theo theo thứ tự pivot/crank/piston. Phím 1/2/3
+    chọn điểm; nhấp phải xóa điểm đang chọn. S lưu, N bỏ qua, Q thoát.
+    Không tạo nhãn suy diễn cho những khung hình bị bỏ qua.
     """
-    if split not in ('train','val'):raise ValueError('split must be train or val')
-    if not session or any(x in session for x in '/\\..'):raise ValueError('Use simple session ID without paths')
-    if stride<1:raise ValueError('stride >= 1 required')
+    if split not in ('train','val'):raise ValueError('split phải là train hoặc val')
+    if not session or any(x in session for x in '/\\..'):raise ValueError('Dùng mã phiên đơn giản, không chứa đường dẫn')
+    if stride<1:raise ValueError('stride phải lớn hơn hoặc bằng 1')
     initialize_dataset(root)
     cap=cv2.VideoCapture(video)
-    if not cap.isOpened():raise RuntimeError('Cannot open video: '+str(video))
-    window='MechaVision labeler | 1/2/3 select | L-click assign | R-click clear | S save | N next | Q quit'
+    if not cap.isOpened():raise RuntimeError('Không mở được video: '+str(video))
+    window='MechaVision — Gán nhãn: 1/2/3 chọn, chuột trái đặt, chuột phải xóa, S lưu, N tiếp, Q thoát'
     cv2.namedWindow(window,cv2.WINDOW_NORMAL)
     points=[None,None,None];selected=[0]
     def mouse(event,x,y,flags,data):
@@ -90,12 +91,12 @@ def annotate_video(video:str,root:str,split:str='train',session:str='session01',
                 for i,p in enumerate(points):
                     if p is not None:
                         cv2.circle(display,p,6,(69,215,115),-1)
-                        cv2.putText(display,f'{i+1}:{KEYPOINT_NAMES[i]}',(p[0]+9,p[1]-8),
+                        put_text(display,f'{i+1}: {KEYPOINT_LABELS[KEYPOINT_NAMES[i]]}',(p[0]+9,p[1]-8),
                                     cv2.FONT_HERSHEY_SIMPLEX,.55,(200,255,220),2)
                 cv2.rectangle(display,(0,0),(min(920,display.shape[1]),72),(19,25,36),-1)
-                cv2.putText(display,f'Frame {frame_idx} | Selected {selected[0]+1}:{KEYPOINT_NAMES[selected[0]]}',
+                put_text(display,f'Khung {frame_idx} | Chọn {selected[0]+1}: {KEYPOINT_LABELS[KEYPOINT_NAMES[selected[0]]]}',
                             (12,25),cv2.FONT_HERSHEY_SIMPLEX,.59,(235,241,247),2)
-                cv2.putText(display,'1 2 3: select  |  L-click: mark  |  R-click: clear  |  S: save  N: skip  Q: quit',
+                put_text(display,'1/2/3: chọn | Trái: đặt | Phải: xóa | S: lưu | N: bỏ qua | Q: thoát',
                             (12,52),cv2.FONT_HERSHEY_SIMPLEX,.49,(168,195,235),1)
                 cv2.imshow(window,display)
                 key=cv2.waitKey(30)&0xff
@@ -107,7 +108,7 @@ def annotate_video(video:str,root:str,split:str='train',session:str='session01',
                     h,w=frame.shape[:2];stem=f'{session}_f{frame_idx:07d}'
                     img=Path(root)/'images'/split/(stem+'.jpg')
                     lbl=Path(root)/'labels'/split/(stem+'.txt')
-                    if not cv2.imwrite(str(img),frame):raise RuntimeError('Failed to write '+str(img))
+                    if not cv2.imwrite(str(img),frame):raise RuntimeError('Không ghi được '+str(img))
                     lbl.write_text(yolo_pose_line(points,w,h),encoding='utf-8')
                     saved+=1;break
     finally:
@@ -116,16 +117,16 @@ def annotate_video(video:str,root:str,split:str='train',session:str='session01',
 
 
 def generate_markers(out:str,size:int=240):
-    if not hasattr(cv2,'aruco'):raise RuntimeError('Requires opencv-contrib-python')
+    if not hasattr(cv2,'aruco'):raise RuntimeError('Cần cài opencv-contrib-python')
     a=cv2.aruco;dictionary=a.getPredefinedDictionary(a.DICT_4X4_50)
     page=np.full((size+110,size*3+80,3),255,dtype=np.uint8)
     for i,name in enumerate(KEYPOINT_NAMES):
         marker=a.generateImageMarker(dictionary,i,size-30)
         x=30+i*size;y=20
         page[y:y+size-30,x:x+size-30]=cv2.cvtColor(marker,cv2.COLOR_GRAY2BGR)
-        cv2.putText(page,f'ID {i}: {name}',(x,y+size+12),cv2.FONT_HERSHEY_SIMPLEX,.57,(0,0,0),2)
+        put_text(page,f'ID {i}: {KEYPOINT_LABELS[name]}',(x,y+size+12),cv2.FONT_HERSHEY_SIMPLEX,.57,(0,0,0),2)
     p=Path(out);p.parent.mkdir(parents=True,exist_ok=True)
-    if not cv2.imwrite(str(p),page):raise RuntimeError('Cannot save markers')
+    if not cv2.imwrite(str(p),page):raise RuntimeError('Không lưu được trang dấu chuẩn')
     return p
 
 
@@ -134,14 +135,14 @@ def train(dataset_yaml:str,model:str='yolo11n-pose.pt',epochs:int=80,imgsz:int=6
     try:
         from ultralytics import YOLO
     except ImportError as exc:
-        raise RuntimeError('Install optional training libraries with pip install -e ".[train]"') from exc
+        raise RuntimeError('Cài thư viện huấn luyện bằng pip install -e ".[train]"') from exc
     if not Path(dataset_yaml).is_file():raise FileNotFoundError(dataset_yaml)
-    if epochs<1:raise ValueError('epochs must be positive')
+    if epochs<1:raise ValueError('epochs phải dương')
     net=YOLO(model)
     return net.train(data=str(Path(dataset_yaml).resolve()),epochs=epochs,imgsz=imgsz,
                      batch=batch,device=device,project='runs/mechavision',name='keypoint',exist_ok=False)
 
-# --- Reproducible three-way, session-level dataset pipeline ---
+# Quy trình chia ba tập theo phiên quay, có thể tái lập.
 import json
 import random
 import shutil
@@ -154,11 +155,11 @@ def _label_line(points,size):
 
 def extract_frames(video:str,session:str,root:str='data/labeled',stride:int=8,limit:int=1000):
     if not session or any(x in session for x in '/\\..'):
-        raise ValueError('Session must be an unqualified simple name')
-    if stride<=0 or limit<=0:raise ValueError('stride and limit must be positive')
+        raise ValueError('Tên phiên phải đơn giản, không chứa đường dẫn')
+    if stride<=0 or limit<=0:raise ValueError('stride và limit phải dương')
     out=Path(root)/session;out.mkdir(parents=True,exist_ok=True)
     cap=cv2.VideoCapture(video)
-    if not cap.isOpened():raise RuntimeError(f'Cannot open video: {video}')
+    if not cap.isOpened():raise RuntimeError(f'Không mở được video: {video}')
     i=n=0
     try:
         while n<limit:
@@ -166,7 +167,7 @@ def extract_frames(video:str,session:str,root:str='data/labeled',stride:int=8,li
             if not ok:break
             if i%stride==0:
                 path=out/f'{i:07d}.jpg'
-                if not cv2.imwrite(str(path),frame):raise OSError(f'Cannot save {path}')
+                if not cv2.imwrite(str(path),frame):raise OSError(f'Không lưu được {path}')
                 n+=1
             i+=1
     finally:cap.release()
@@ -174,13 +175,13 @@ def extract_frames(video:str,session:str,root:str='data/labeled',stride:int=8,li
 
 
 def annotate_folder(session_folder:str):
-    """3-keypoint click labeler. Left click joint, S skip missing, R reset,
-    ENTER save and next image, Q quit. Images retain session provenance.
+    """Gán ba điểm: nhấp trái chọn khớp, S bỏ qua điểm bị che, R đặt lại,
+    Enter lưu và chuyển ảnh, Q thoát. Giữ nguồn gốc phiên quay của ảnh.
     """
     folder=Path(session_folder)
     images=sorted([*folder.glob('*.jpg'),*folder.glob('*.png')])
-    if not images:raise ValueError(f'No images found in {folder}')
-    window='MechaVision: click joint | S missing | R reset | ENTER save | Q exit'
+    if not images:raise ValueError(f'Không tìm thấy ảnh trong {folder}')
+    window='MechaVision — Chọn khớp: S bỏ qua, R đặt lại, Enter lưu, Q thoát'
     cv2.namedWindow(window,cv2.WINDOW_NORMAL)
     try:
         for image_file in images:
@@ -197,12 +198,12 @@ def annotate_folder(session_folder:str):
                 for i,p in enumerate(pts):
                     if p is not None:
                         cv2.circle(display,p,6,(80,215,140),-1)
-                        cv2.putText(display,KEYPOINTS[i],(p[0]+10,p[1]-8),
+                        put_text(display,KEYPOINT_LABELS[KEYPOINTS[i]],(p[0]+10,p[1]-8),
                                     cv2.FONT_HERSHEY_SIMPLEX,.55,(80,215,140),2)
-                text=(f'CLICK {KEYPOINTS[len(pts)]} (S if occluded)' if len(pts)<3
-                      else 'ENTER to save / R reset')
+                text=(f'Chọn {KEYPOINT_LABELS[KEYPOINTS[len(pts)]]} (S nếu bị che)' if len(pts)<3
+                      else 'Enter: lưu / R: đặt lại')
                 cv2.rectangle(display,(0,0),(w,40),(20,25,37),-1)
-                cv2.putText(display,f'{image_file.name}: {text}',(8,26),cv2.FONT_HERSHEY_SIMPLEX,.5,(240,240,240),1)
+                put_text(display,f'{image_file.name}: {text}',(8,26),cv2.FONT_HERSHEY_SIMPLEX,.5,(240,240,240),1)
                 cv2.imshow(window,display)
                 key=cv2.waitKey(30)&0xff
                 if key in (ord('q'),27):return
@@ -219,11 +220,11 @@ def annotate_folder(session_folder:str):
 
 
 def split_by_session(root:str='data/labeled',out:str='data/pose_dataset',seed:int=42):
-    """Train/val/test cannot share frames from the same capture session."""
+    """Các tập train/val/test không được dùng chung khung hình từ một phiên quay."""
     base=Path(root)
     sessions=[d for d in sorted(base.iterdir()) if d.is_dir() and any(
         im.with_suffix('.txt').is_file() for im in [*d.glob('*.jpg'),*d.glob('*.png')])]
-    if len(sessions)<3:raise ValueError('At least three labeled sessions required for train/val/test')
+    if len(sessions)<3:raise ValueError('Cần ít nhất ba phiên đã gán nhãn cho train/val/test')
     rng=random.Random(seed);rng.shuffle(sessions)
     n=len(sessions);nt=max(1,round(n*.2));nv=max(1,round(n*.2))
     groups={'test':sessions[:nt],'val':sessions[nt:nt+nv],'train':sessions[nt+nv:]}
@@ -243,7 +244,7 @@ def split_by_session(root:str='data/labeled',out:str='data/pose_dataset',seed:in
                 shutil.copy2(label,dest/'labels'/split/(name+'.txt'))
                 count+=1
         counts[split]=count
-    if any(v==0 for v in counts.values()):raise ValueError('Each split requires labeled images')
+    if any(v==0 for v in counts.values()):raise ValueError('Mỗi tập phải có ảnh đã gán nhãn')
     (dest/'data.yaml').write_text(
         f'path: {dest.resolve().as_posix()}\ntrain: images/train\nval: images/val\ntest: images/test\n'
         'kpt_shape: [3, 3]\nflip_idx: [0, 1, 2]\nnames:\n  0: mechanism\n',encoding='utf-8')

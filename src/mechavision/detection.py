@@ -1,19 +1,20 @@
-"""Detection adapters. YOLO requires user-trained weights, never bundled/faked."""
+"""Bộ nhận diện. YOLO cần trọng số được huấn luyện riêng, không kèm trọng số giả."""
 from __future__ import annotations
+from .i18n import put_text, KEYPOINT_LABELS
 import cv2
 from .types import Observation,Landmark
 
 
 class ArucoDetector:
-    """Fiducial-based pilot measurement: ids 0 pivot, 1 crank, 2 piston.
+    """Đo thử nghiệm bằng dấu chuẩn: ID 0 tâm quay, 1 chốt khuỷu, 2 khớp pít-tông.
 
-    Place marker *centers* at the modeled landmarks; otherwise an offset
-    calibration is mandatory. Pivot must be visible at least for calibration.
+    Đặt tâm dấu chuẩn trùng điểm mô hình; nếu lệch phải hiệu chuẩn độ lệch.
+    Tâm quay phải nhìn thấy ít nhất khi hiệu chuẩn.
     """
     mapping={0:"pivot",1:"crank",2:"piston"}
     def __init__(self):
         if not hasattr(cv2,"aruco"):
-            raise RuntimeError("Install opencv-contrib-python (not opencv-python).")
+            raise RuntimeError("Hãy cài opencv-contrib-python thay cho opencv-python.")
         aruco=cv2.aruco
         self.dictionary=aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
         self.parameters=aruco.DetectorParameters()
@@ -32,16 +33,16 @@ class ArucoDetector:
 
 
 class YOLOPoseDetector:
-    """One mechanism per frame, three custom keypoints: pivot, crank, piston.
+    """Một cơ cấu mỗi khung hình, ba điểm riêng: pivot, crank, piston.
 
-    This does not use stock human-pose weights. An explicitly trained pose
-    checkpoint with the matching class and keypoint ordering is required.
+    Cần trọng số đã huấn luyện đúng lớp và thứ tự điểm; trọng số nhận diện
+    tư thế người có sẵn không đáp ứng bài toán này.
     """
     def __init__(self,weights:str,confidence:float=0.35,device:str="cpu"):
         try:
             from ultralytics import YOLO
         except ImportError as exc:
-            raise RuntimeError('Install optional dependencies: pip install -e ".[train]"') from exc
+            raise RuntimeError('Cài phụ thuộc tùy chọn: pip install -e ".[train]"') from exc
         self.model=YOLO(weights)
         self.confidence=confidence
         self.device=device
@@ -53,7 +54,7 @@ class YOLOPoseDetector:
             k=results[0].keypoints
             xy=k.xy.cpu().numpy()
             scores=k.conf.cpu().numpy() if k.conf is not None else None
-            # Select single highest-confidence mechanism detection
+            # Chọn duy nhất cơ cấu được nhận diện với độ tin cậy cao nhất.
             boxes=results[0].boxes
             idx=int(boxes.conf.argmax().item()) if boxes is not None and len(boxes)>0 else 0
             for j,name in enumerate(("pivot","crank","piston")):
@@ -70,16 +71,16 @@ def draw_observations(frame,obs:Observation):
     for name,p in obs.landmarks.items():
         q=(round(p.x),round(p.y))
         cv2.circle(frame,q,7,colors.get(name,(255,255,255)),2,cv2.LINE_AA)
-        cv2.putText(frame,f"{name} {p.confidence:.2f}",(q[0]+12,q[1]-11),
+        put_text(frame,f"{KEYPOINT_LABELS.get(name, name)} {p.confidence:.2f}",(q[0]+12,q[1]-11),
                     cv2.FONT_HERSHEY_SIMPLEX,.47,colors.get(name,(255,255,255)),1,cv2.LINE_AA)
     return frame
 
 class ColorMarkerDetector:
-    """Practical untrained camera baseline for circular stickers.
+    """Phương pháp đối chứng camera dùng nhãn tròn, không cần huấn luyện.
 
-    Red=pivot, green=crank pin, blue=actual piston/rod joint. Use saturated
-    colored markers and diffuse lighting. Marker centers must coincide with
-    modeled joints or be corrected by a physical offset calibration.
+    Đỏ = tâm quay, xanh lá = chốt khuỷu, xanh dương = khớp thanh truyền–pít-tông.
+    Dùng màu bão hòa, ánh sáng khuếch tán. Tâm nhãn phải trùng khớp mô hình
+    hoặc được hiệu chỉnh bằng mô hình độ lệch vật lý.
     """
     def __init__(self,min_area:float=30.0,max_area:float=7000.0):
         self.min_area=min_area
@@ -121,26 +122,26 @@ def make_detector(mode:str,weights:str|None=None,device:str='cpu'):
     if mode=='aruco':return ArucoDetector()
     if mode=='color':return ColorMarkerDetector()
     if mode=='yolo':
-        if not weights:raise ValueError('YOLO detector requires trained --weights path')
+        if not weights:raise ValueError('Bộ nhận diện YOLO cần đường dẫn --weights tới trọng số đã huấn luyện')
         return YOLOPoseDetector(weights,device=device)
-    raise ValueError(f'Unknown detection mode: {mode}')
+    raise ValueError(f'Chế độ nhận diện không xác định: {mode}')
 
 
 def create_aruco_sheet(path:str,marker_size:int=300):
-    """Create printable marker sheet, ids 0 (pivot), 1 (crank), 2 (piston)."""
+    """Tạo trang dấu chuẩn để in: ID 0 (tâm quay), 1 (chốt khuỷu), 2 (khớp pít-tông)."""
     import numpy as np
     if not hasattr(cv2,'aruco'):
-        raise RuntimeError('opencv-contrib-python required')
+        raise RuntimeError('Cần cài opencv-contrib-python')
     aruco=cv2.aruco
     dictionary=aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     cell=marker_size+90
     image=np.full((cell,3*cell,3),255,dtype=np.uint8)
-    for i,name in enumerate(('PIVOT 0','CRANK 1','PISTON 2')):
+    for i,name in enumerate(('pivot','crank','piston')):
         marker=aruco.generateImageMarker(dictionary,i,marker_size)
         x=i*cell+45
         image[38:38+marker_size,x:x+marker_size]=cv2.cvtColor(marker,cv2.COLOR_GRAY2BGR)
-        cv2.putText(image,name,(x,marker_size+65),cv2.FONT_HERSHEY_SIMPLEX,.85,(0,0,0),2)
+        put_text(image,f'{KEYPOINT_LABELS[name]} — ID {i}',(x,marker_size+65),cv2.FONT_HERSHEY_SIMPLEX,.72,(0,0,0),2)
     from pathlib import Path
     p=Path(path);p.parent.mkdir(parents=True,exist_ok=True)
-    if not cv2.imwrite(str(p),image):raise OSError(f'Could not write {p}')
+    if not cv2.imwrite(str(p),image):raise OSError(f'Không ghi được {p}')
     return p

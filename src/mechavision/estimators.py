@@ -1,10 +1,10 @@
-"""Independent baselines and physics-constrained nonlinear EKF.
+"""Các phương pháp đối chứng độc lập và EKF phi tuyến có ràng buộc vật lý.
 
-State [unwrapped crank angle (rad), angular velocity (rad/s)].
-Constant-velocity prediction with high acceleration process noise so hand-cranking
-changes speed/reverses. Camera observation is nonlinear. We update on crank
-and piston coordinates, weight by measurement confidence, gate gross outliers,
-and abstain when uncertainty is too high or no information remains.
+Trạng thái [góc khuỷu liên tục (rad), vận tốc góc (rad/s)]. Dự báo vận tốc
+cục bộ không đổi, có nhiễu quá trình gia tốc để mô tả thay đổi tốc độ/đảo chiều.
+Quan sát camera phi tuyến. Cập nhật tọa độ chốt khuỷu và khớp pít-tông theo
+độ tin cậy, loại ngoại lai lớn và ngừng trả giá trị khi bất định quá cao
+hoặc không còn thông tin.
 """
 from __future__ import annotations
 import math
@@ -19,14 +19,14 @@ def _point(obs: Observation, name: str) -> np.ndarray | None:
 
 
 def _origin(obs: Observation, geo: Geometry) -> np.ndarray:
-    # A pivot marker is required or a previously calibrated configured origin.
-    # Camera acquisition should not silently assume a correct origin.
+    # Cần dấu tâm quay hoặc gốc tọa độ đã được hiệu chuẩn trước.
+    # Không mặc nhiên coi gốc tọa độ là đúng khi thu nhận camera.
     p=_point(obs,"pivot")
     return geo.origin if p is None else p
 
 
 class RawVisualEstimator:
-    """Baseline A: directly infer angle from crank keypoint; no interpolation."""
+    """Đối chứng A: suy góc trực tiếp từ điểm chốt khuỷu, không nội suy."""
     def __init__(self,geo:Geometry):
         self.geo=geo
         self.last_theta=None
@@ -45,11 +45,11 @@ class RawVisualEstimator:
 
 
 class MotionEKF:
-    """Two-state EKF; physics=True uses slider displacement as extra measurement.
+    """EKF hai trạng thái; physics=True bổ sung phép đo vị trí con trượt.
 
-    A tracker initialized from crank cannot recover an absolute 2π-turn count after
-    a long occlusion, a physical observability limitation. Prediction during
-    occlusion is reported as PREDICTED, not TRACKING.
+    Bộ lọc khởi tạo từ chốt khuỷu không thể khôi phục số vòng quay tuyệt đối
+    sau che khuất dài do giới hạn khả quan sát. Khi chỉ dự báo trong che khuất,
+    báo PREDICTED thay vì TRACKING.
     """
     def __init__(self,geo:Geometry,physics:bool=True,
                  measurement_sigma_px:float=3.0,accel_sigma:float=9.0,
@@ -86,7 +86,7 @@ class MotionEKF:
             self.last_measured_t=t
         dt=max(0.0,min(0.25,t-self.last_t))
         self.last_t=t
-        # continuous white acceleration process model
+        # Mô hình quá trình với gia tốc là nhiễu trắng liên tục.
         F=np.array([[1.0,dt],[0,1.0]])
         Q=(self.accel**2)*np.array([[dt**4/4,dt**3/2],[dt**3/2,dt**2]])
         self.x=F@self.x
@@ -105,7 +105,7 @@ class MotionEKF:
                 continue
             theta=float(self.x[0]);r=self.geo.radius_px
             rad=math.radians(self.geo.axis_deg)
-            # image projection of local derivative (x,y)
+            # Chiếu đạo hàm cục bộ (x,y) lên ảnh.
             def vector_to_image(dx,dy):
                 return np.array([math.cos(rad)*dx+math.sin(rad)*dy,
                                  math.sin(rad)*dx-math.cos(rad)*dy])
@@ -121,8 +121,8 @@ class MotionEKF:
             v=measurement-h
             S=H@self.P@H.T+R
             nis=float(v@np.linalg.solve(S,v))
-            # The piston-only innovation is locally ambiguous. In a fully
-            # initialized filter, EKF linearization follows the prior branch.
+            # Sai lệch đổi mới chỉ từ pít-tông có thể nhập nhằng cục bộ. Khi bộ lọc
+            # đã khởi tạo, tuyến tính hóa EKF đi theo nhánh tiên nghiệm.
             if nis>self.gate_sigma**2:
                 rejected+=1
                 continue
@@ -143,7 +143,7 @@ class MotionEKF:
             status="TRACKING"
         else:
             status="PREDICTED"
-        # Never supply a seemingly valid value after uncertainty timeout.
+        # Không trả giá trị có vẻ hợp lệ khi đã vượt giới hạn bất định/thời gian.
         return Estimate(t,theta=float(self.x[0]) if status!="LOST" else None,
                         omega=float(self.x[1]) if status!="LOST" else None,
                         sigma_theta=sigma,status=status,observation_count=accepted,

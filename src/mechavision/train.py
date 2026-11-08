@@ -1,4 +1,4 @@
-"""Real YOLO pose training and validation entry points (no fake checkpoints)."""
+"""Huấn luyện và đánh giá YOLO Pose thực sự; không tạo trọng số giả."""
 from __future__ import annotations
 from pathlib import Path
 
@@ -18,7 +18,7 @@ def train_pose(dataset_yaml:str,model:str='yolo11n-pose.pt',epochs:int=80,
 
 def validate_pose(weights:str,dataset_yaml:str,split:str='test',device:str|None=None):
     if not Path(weights).is_file():raise FileNotFoundError(weights)
-    if split not in ('val','test'):raise ValueError('split must be val or test')
+    if split not in ('val','test'):raise ValueError('split phải là val hoặc test')
     from ultralytics import YOLO
     kwargs=dict(data=dataset_yaml,split=split,plots=True,project='runs/mechavision',name='validation')
     if device is not None:kwargs['device']=device
