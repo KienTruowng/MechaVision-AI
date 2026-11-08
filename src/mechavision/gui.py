@@ -160,7 +160,7 @@ class MainWindow(QMainWindow):
                 )
                 return
             try:
-                Geometry.from_json(geometry)
+                selected_geometry = Geometry.from_json(geometry)
             except (OSError, ValueError, TypeError) as error:
                 self._notify("Hình học không hợp lệ", str(error))
                 return
@@ -190,6 +190,7 @@ class MainWindow(QMainWindow):
         )
         self.state.reset(mode, filename)
         self.state.phase = "connecting"
+        self.monitor.set_geometry(Geometry() if mode == "simulation" else selected_geometry)
         self.monitor.prepare(mode)
         self.analysis.clear()
         self.settings.set_locked(True)

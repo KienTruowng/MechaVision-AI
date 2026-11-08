@@ -6,7 +6,7 @@ COLORS = {
     "panel": "#0e1c2e",
     "border": "#203249",
     "text": "#dce7f4",
-    "muted": "#8298b1",
+    "muted": "#9db1c8",
     "cyan": "#50d4ed",
     "blue": "#438fff",
     "valid": "#48d5b1",
@@ -42,7 +42,7 @@ def apply_application_theme(app):
 
 
 STYLE = """
-QWidget { color:#dce7f4; font-family:"Segoe UI"; font-size:12px; }
+QWidget { color:#dce7f4; font-family:"Segoe UI"; font-size:13px; }
 QMainWindow, QWidget#shell { background:#07111f; }
 QFrame#sidebar { background:#0a1625; border-right:1px solid #1b2b40; }
 QFrame#panel { background:#0e1c2e; border:1px solid #203249; border-radius:10px; }
@@ -51,13 +51,13 @@ QFrame#notice { background:#101f31; border:1px solid #263c54; border-radius:8px;
 QLabel { background:transparent; border:none; }
 QLabel#brand { color:#f0f6ff; font-size:17px; font-weight:700; letter-spacing:1px; }
 QLabel#brand_icon { background:#153a51; color:#62d8ef; border:1px solid #28617c; border-radius:9px; font-size:19px; font-weight:700; }
-QLabel#page_title { color:#f2f7ff; font-size:24px; font-weight:700; }
-QLabel#panel_title { color:#e6effb; font-size:13px; font-weight:600; }
+QLabel#page_title { color:#f2f7ff; font-size:26px; font-weight:700; }
+QLabel#panel_title { color:#e6effb; font-size:14px; font-weight:600; }
 QLabel#eyebrow { color:#8298b1; font-size:10px; font-weight:600; letter-spacing:1px; }
-QLabel#muted { color:#8298b1; font-size:11px; }
-QLabel#kpi_value { color:#eff7ff; font-size:28px; font-weight:600; }
-QLabel#kpi_state { color:#b6c9de; font-size:16px; font-weight:600; }
-QLabel#badge { border-radius:5px; padding:5px 9px; font-size:10px; font-weight:600; background:#173148; color:#7fd4ed; }
+QLabel#muted { color:#9db1c8; font-size:12px; }
+QLabel#kpi_value { color:#eff7ff; font-size:34px; font-weight:600; }
+QLabel#kpi_state { color:#b6c9de; font-size:18px; font-weight:600; }
+QLabel#badge { border-radius:5px; padding:5px 9px; font-size:11px; font-weight:600; background:#173148; color:#7fd4ed; }
 QLabel#badge[tone="warning"] { background:#392d19; color:#f0c36a; }
 QLabel#badge[tone="error"] { background:#3d202b; color:#ff939b; }
 QLabel#badge[tone="muted"] { background:#1b2b3e; color:#a1b3c8; }

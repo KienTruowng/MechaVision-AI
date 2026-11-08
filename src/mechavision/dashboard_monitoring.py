@@ -3,7 +3,7 @@
 import math
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QRectF
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableWidgetItem,
     QSizePolicy,
+    QPushButton,
 )
 from .dashboard_theme import COLORS
 from .dashboard_widgets import (
@@ -20,9 +21,11 @@ from .dashboard_widgets import (
     set_tone,
     KpiCard,
     ImageSurface,
+    TwinSurface,
     table,
 )
 from .i18n import status_text
+from .geometry import Geometry
 
 SOURCE_LABELS = {
     "simulation": "MÔ PHỎNG",
@@ -70,6 +73,8 @@ class KpiStrip(QWidget):
             ("state", "Trạng thái", "", "Chất lượng theo dõi"),
         ]:
             card = KpiCard(title, unit, caption, state=name == "state")
+            if name in ("angle", "rpm"):
+                card.value.setStyleSheet("color:#70def2;")
             self.labels[name] = card.value
             layout.addWidget(card, 1)
         self.labels["sigma"].setToolTip(
@@ -148,7 +153,7 @@ class MonitoringPage(QWidget):
         layout.setSpacing(10)
         notice = QHBoxLayout()
         self.source_badge = badge("CHƯA CÓ NGUỒN", "muted")
-        self.source_badge.setMinimumWidth(112)
+        self.source_badge.setMinimumWidth(126)
         notice.addWidget(self.source_badge)
         self.banner = text_label(
             "Bắt đầu phiên mô phỏng hoặc cấu hình camera/video để quan sát.",
@@ -157,7 +162,7 @@ class MonitoringPage(QWidget):
         )
         notice.addWidget(self.banner, 1)
         self.tracking_badge = badge("CHƯA CÓ DỮ LIỆU", "muted")
-        self.tracking_badge.setMinimumWidth(118)
+        self.tracking_badge.setMinimumWidth(132)
         notice.addWidget(self.tracking_badge)
         layout.addLayout(notice)
 
@@ -171,6 +176,16 @@ class MonitoringPage(QWidget):
         self.camera = ImageSurface(
             "Chưa có khung hình", "Bắt đầu phiên để xem ảnh và điểm đặc trưng."
         )
+        self._geometry = Geometry()
+        self.focus_button = QPushButton("Cận cảnh")
+        self.focus_button.setCheckable(True)
+        self.focus_button.setChecked(True)
+        self.focus_button.setToolTip(
+            "Cận cảnh cố định theo hình học hiệu chuẩn; không đổi ảnh gốc hoặc tọa độ đo. "
+            "Tắt để xem toàn bộ khung nguồn."
+        )
+        self.focus_button.setStyleSheet("padding:4px 9px; font-size:11px;")
+        self.focus_button.toggled.connect(self._update_focus)
         camera_layout.addWidget(self.camera, 1)
         key = QHBoxLayout()
         for title, color in [
@@ -182,18 +197,19 @@ class MonitoringPage(QWidget):
             label.setStyleSheet("color:" + color + ";")
             key.addWidget(label)
         key.addStretch()
+        key.addWidget(self.focus_button)
         camera_layout.addLayout(key)
         twin, twin_layout = panel(
             "MÔ HÌNH ĐỘNG HỌC SỐ",
-            trailing=text_label("2D · Cùng trạng thái EKF", "muted"),
+            trailing=text_label("2D · EKF vật lý", "muted"),
         )
-        self.twin = ImageSurface(
+        self.twin = TwinSurface(
             "Chưa có trạng thái ước lượng",
             "Mô hình chỉ cập nhật khi có ước lượng hợp lệ hoặc dự báo.",
         )
         twin_layout.addWidget(self.twin, 1)
         twin_layout.addWidget(
-            text_label("Từ kết quả ước lượng • Không phải cảm biến độc lập", "muted")
+            text_label("O · Trục quay     C · Chốt khuỷu     S · Khớp pít-tông", "muted")
         )
         self.media_splitter.addWidget(camera)
         self.media_splitter.addWidget(twin)
@@ -203,7 +219,7 @@ class MonitoringPage(QWidget):
         self.kpis = KpiStrip()
         layout.addWidget(self.kpis)
         bottom_widget = QWidget()
-        bottom_widget.setFixedHeight(174)
+        bottom_widget.setFixedHeight(140)
         bottom_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         bottom = QHBoxLayout(bottom_widget)
         bottom.setContentsMargins(0, 0, 0, 0)
@@ -236,6 +252,24 @@ class MonitoringPage(QWidget):
             "Chưa có ước lượng để đánh giá độ tin cậy.", "muted", True
         )
         layout.addWidget(self.confidence_label)
+        self._update_focus()
+
+    def set_geometry(self, geometry):
+        self._geometry = geometry
+        self._update_focus()
+
+    def _update_focus(self):
+        # Miền cố định toàn vòng, có lề cho nhãn; không bám theo nhiễu từng khung.
+        points = np.concatenate([
+            list(self._geometry.points(theta).values())
+            for theta in np.linspace(0, 2 * math.pi, 181)
+        ])
+        low, high = points.min(axis=0), points.max(axis=0)
+        rect = QRectF(float(low[0] - 180), float(low[1] - 80),
+                      float(high[0] - low[0] + 360), float(high[1] - low[1] + 160))
+        focused = self.focus_button.isChecked()
+        self.camera.set_focus_rect(rect if focused else None)
+        self.focus_button.setText("Cận cảnh" if focused else "Toàn khung")
 
     def prepare(self, mode):
         self.camera.clear()
@@ -261,7 +295,7 @@ class MonitoringPage(QWidget):
         obs, metrics = state.observation, state.metrics
         est = metrics["physics"]
         self.camera.set_frame(frame)
-        self.twin.set_frame(twin)
+        self.twin.set_estimate(self._geometry, est)
         self.kpis.update_metrics(metrics)
         self.tracking_badge.setText(status_text(est.status).upper())
         set_tone(self.tracking_badge, STATUS_TONES.get(est.status, "muted"))

@@ -56,45 +56,74 @@ def draw_estimate(frame,estimate:Estimate):
 
 
 def twin_frame(geo,est,width=620,height=390):
+    """Bản vẽ cơ khí theo ước lượng; phép biến đổi hiển thị luôn đồng tỷ lệ."""
     import numpy as np
     img=np.full((height,width,3),(31,19,7),dtype=np.uint8)
-    for x in range(20,width,40):cv2.line(img,(x,65),(x,height-50),(44,31,17),1)
-    for y in range(65,height-40,40):cv2.line(img,(20,y),(width-20,y),(44,31,17),1)
-    put_text(img,f'r = {geo.radius_px:.1f} px   l = {geo.rod_px:.1f} px   e = {geo.slider_offset_px:.1f} px',
-             (22,28),cv2.FONT_HERSHEY_SIMPLEX,.48,(181,158,128),1,cv2.LINE_AA)
+    compact=height<270
+    top=34 if compact else 64
+    bottom=height-30
+    for x in range(24,width,48):
+        cv2.line(img,(x,top),(x,bottom),(43,30,17),1)
+    for y in range(top,bottom,48):
+        cv2.line(img,(24,y),(width-24,y),(43,30,17),1)
+    put_text(img,f'r {geo.radius_px:.0f} px   /   l {geo.rod_px:.0f} px   /   e {geo.slider_offset_px:.0f} px',
+             (18,21),fontScale=.45 if compact else .52,color=(196,176,150))
     label='Chưa có trạng thái' if est is None else status_text(est.status)
     color={'TRACKING':(177,213,72),'PREDICTED':(106,195,240),'LOST':(135,123,255)}.get(
         est.status if est is not None else 'UNINITIALIZED',(161,137,112))
-    put_text(img,label,(22,52),cv2.FONT_HERSHEY_SIMPLEX,.53,color,1,cv2.LINE_AA)
+    put_text(img,label,(max(18,width-145),21) if compact else (18,46),
+             fontScale=.45 if compact else .54,color=color)
     if est is None or est.theta is None or est.status not in ('TRACKING','PREDICTED'):
-        put_text(img,'KHÔNG ĐỦ ĐỘ TIN CẬY ĐỂ ƯỚC LƯỢNG',(60,height//2),
-                    cv2.FONT_HERSHEY_SIMPLEX,.58,(124,140,163),1,cv2.LINE_AA)
+        put_text(img,'Không đủ độ tin cậy để dựng cơ cấu',(24,height//2+10),
+                 fontScale=.62,color=(163,140,124))
         return img
-    # Khớp toàn bộ miền hình học vào viewport, kể cả ray trượt lệch tâm.
-    ymin=min(-geo.radius_px,geo.slider_offset_px)
-    ymax=max(geo.radius_px,geo.slider_offset_px)
-    scale=min((width-130)/(geo.rod_px+2*geo.radius_px),(height-155)/(ymax-ymin))
-    pivot=np.array([35+geo.radius_px*scale,(height+35)/2+(ymin+ymax)*scale/2],dtype=float)
-    def xy(pos):return tuple(np.rint(pivot+np.array([pos[0],-pos[1]])*scale).astype(int))
+    # Miền toàn vòng cố định: không phóng to/thu nhỏ theo góc hoặc thời gian.
     r=geo.radius_px
+    ymin=min(-r,geo.slider_offset_px)
+    ymax=max(r,geo.slider_offset_px)
+    xmin=-r
+    xmax=geo.rod_px+r
+    scale=min((width-96)/(xmax-xmin),(bottom-top-44)/(ymax-ymin))
+    scale=max(.01,scale)
+    center=np.array([width/2,(top+bottom)/2],dtype=float)
+    midpoint=np.array([(xmin+xmax)/2,(ymin+ymax)/2])
+    def xy(pos):
+        delta=(np.array(pos)-midpoint)*scale
+        return tuple(np.rint(center+delta*np.array([1,-1])).astype(int))
     O=xy((0,0));C=xy((r*np.cos(est.theta),r*np.sin(est.theta)))
     P=xy((geo.slider_x(est.theta),geo.slider_offset_px))
-    cv2.arrowedLine(img,(30,O[1]),(width-26,O[1]),(91,66,41),1,tipLength=.025)
-    cv2.arrowedLine(img,(O[0],height-65),(O[0],80),(91,66,41),1,tipLength=.04)
-    for offset in (-25,25):cv2.line(img,(max(30,P[0]-80),P[1]+offset),(width-35,P[1]+offset),(97,76,49),2)
-    cv2.circle(img,O,int(r*scale),(95,65,37),1,cv2.LINE_AA)
-    cv2.line(img,O,C,(255,143,67),8,cv2.LINE_AA)
-    cv2.line(img,C,P,(237,212,80),7,cv2.LINE_AA)
-    cv2.rectangle(img,(P[0]-17,P[1]-21),(P[0]+17,P[1]+21),(104,73,34),-1)
-    cv2.rectangle(img,(P[0]-17,P[1]-21),(P[0]+17,P[1]+21),(237,212,80),2)
+    axis=(93,69,43); blue=(255,143,67); cyan=(237,212,80)
+    cv2.arrowedLine(img,(22,O[1]),(width-22,O[1]),axis,1,tipLength=.02)
+    cv2.arrowedLine(img,(O[0],bottom),(O[0],top),axis,1,tipLength=.04)
+    cv2.circle(img,O,max(1,round(r*scale)),(87,62,35),1,cv2.LINE_AA)
+    # Ray dẫn hướng giữ nguyên trục lệch tâm của mô hình.
+    rail_start=max(24,xy((geo.rod_px-r,geo.slider_offset_px))[0]-30)
+    for offset in (-22,22):
+        cv2.line(img,(rail_start,P[1]+offset),(width-24,P[1]+offset),(129,100,65),3,cv2.LINE_AA)
+        cv2.line(img,(rail_start,P[1]+offset+4),(width-24,P[1]+offset+4),(59,44,27),1)
+    # Bệ ổ trục, vành đỡ và hai thanh có biên rõ trên nền graphite.
+    cv2.rectangle(img,(O[0]-18,O[1]+16),(O[0]+18,O[1]+23),(105,82,53),-1)
+    cv2.circle(img,O,19,(102,78,48),2,cv2.LINE_AA)
+    cv2.circle(img,O,14,(54,38,22),-1,cv2.LINE_AA)
+    for a,b,color,thickness in ((O,C,blue,13),(C,P,cyan,11)):
+        cv2.line(img,a,b,(55,37,18),thickness+6,cv2.LINE_AA)
+        cv2.line(img,a,b,color,thickness,cv2.LINE_AA)
+        cv2.line(img,a,b,(218,209,187),2,cv2.LINE_AA)
+    cv2.rectangle(img,(P[0]-22,P[1]-18),(P[0]+22,P[1]+18),(97,71,36),-1)
+    cv2.rectangle(img,(P[0]-22,P[1]-18),(P[0]+22,P[1]+18),cyan,2)
+    for dx in (-15,15):
+        cv2.line(img,(P[0]+dx,P[1]-14),(P[0]+dx,P[1]+14),(168,138,83),2)
     for name,pt in (('O',O),('C',C),('S',P)):
+        cv2.circle(img,pt,10,(52,34,17),-1,cv2.LINE_AA)
         cv2.circle(img,pt,7,(35,20,8),-1,cv2.LINE_AA)
         cv2.circle(img,pt,7,(237,219,191),2,cv2.LINE_AA)
-        put_text(img,name,(pt[0]+11,pt[1]-13),cv2.FONT_HERSHEY_SIMPLEX,.47,(220,203,179),1)
-    put_text(img,'x',(width-22,O[1]-8),cv2.FONT_HERSHEY_SIMPLEX,.45,(161,130,94),1)
-    put_text(img,'y',(O[0]+9,82),cv2.FONT_HERSHEY_SIMPLEX,.45,(161,130,94),1)
-    put_text(img,f'Góc ước lượng: {math.degrees(est.theta):.1f}°',(22,height-23),
-             cv2.FONT_HERSHEY_SIMPLEX,.51,(214,190,160),1,cv2.LINE_AA)
+        cv2.circle(img,pt,2,(220,207,183),-1,cv2.LINE_AA)
+        put_text(img,name,(pt[0]+12,pt[1]-23),fontScale=.52,color=(231,215,190))
+    put_text(img,'x',(width-22,O[1]-8),fontScale=.45,color=(161,130,94))
+    put_text(img,'y',(O[0]+8,top+4),fontScale=.45,color=(161,130,94))
+    cv2.line(img,(18,height-33),(width-18,height-33),(66,47,28),1)
+    put_text(img,f'θ = {math.degrees(est.theta):.1f}°   ·   Cùng trạng thái ước lượng',
+             (18,height-12),fontScale=.52,color=(221,205,180))
     return img
 
 

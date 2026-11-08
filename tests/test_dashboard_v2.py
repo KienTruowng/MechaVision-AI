@@ -316,6 +316,59 @@ def test_image_surface_owns_its_frame_and_survives_resize(window, app):
         assert not window.camera_label.grab().isNull()
 
 
+def test_closeup_toggle_keeps_original_image_and_measurements(window, app):
+    geo, processor, _ = feed(window)
+    image = window.camera_label.image.copy()
+    metrics = window.state.metrics
+    region = window.camera_label.focus_rect
+    assert region is not None and region.width() < image.width()
+    for angle in np.linspace(0, 2 * math.pi, 180):
+        for x, y in geo.points(angle).values():
+            assert region.left() <= x <= region.right()
+            assert region.top() <= y <= region.bottom()
+    QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
+    app.processEvents()
+    assert window.camera_label.focus_rect is None
+    assert window.monitor.focus_button.text() == "Toàn khung"
+    QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
+    assert window.camera_label.focus_rect == region
+    assert window.camera_label.image == image
+    assert window.state.metrics is metrics
+    processor.close()
+
+
+def test_twin_resize_renders_same_estimate_without_advancing_time(window, app):
+    from mechavision.dashboard_widgets import ImageSurface
+
+    geo, processor, _ = feed(window)
+    estimate = window.state.metrics["physics"]
+    reference = ImageSurface("", "")
+    for size in [(1366, 768), (1920, 1080)]:
+        window.resize(*size)
+        app.processEvents()
+        surface = window.monitor.twin
+        assert surface.image.size() == surface.size()
+        reference.set_frame(twin_frame(geo, estimate, surface.width(), surface.height()))
+        assert surface.image == reference.image
+        previous = surface.image.copy()
+        QTest.qWait(35)
+        assert surface.image == previous
+        assert surface.estimate is estimate
+    processor.close()
+
+
+@pytest.mark.parametrize("axis,offset", [(0, 0), (35, 80), (-90, -80)])
+def test_closeup_uses_selected_calibration_and_stays_fixed(window, axis, offset):
+    geometry = Geometry(axis_deg=axis, slider_offset_px=offset)
+    window.monitor.set_geometry(geometry)
+    region = window.camera_label.focus_rect
+    for theta in np.linspace(0, 2 * math.pi, 180):
+        for x, y in geometry.points(theta).values():
+            assert region.left() <= x <= region.right()
+            assert region.top() <= y <= region.bottom()
+    assert window.camera_label.focus_rect == region
+
+
 @pytest.mark.parametrize("status", ["LOST", "UNINITIALIZED"])
 def test_twin_rejects_angles_from_invalid_status(status):
     geo = Geometry()

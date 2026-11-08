@@ -83,7 +83,7 @@ class KpiCard(QFrame):
         top.addWidget(text_label(unit, "eyebrow"))
         layout.addLayout(top)
         self.value = text_label("—", "kpi_state" if state else "kpi_value")
-        self.value.setMinimumHeight(38 if not state else 28)
+        self.value.setMinimumHeight(44 if not state else 32)
         self.value.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(self.value)
         layout.addWidget(text_label(caption, "muted"))
@@ -97,6 +97,7 @@ class ImageSurface(QWidget):
         self.title = title
         self.detail = detail
         self.image = QImage()
+        self.focus_rect = None
         self.setMinimumSize(180, 150)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -118,12 +119,22 @@ class ImageSurface(QWidget):
         self.image = QImage()
         self.update()
 
+    def set_focus_rect(self, rect):
+        """Cận cảnh chỉ khi vẽ; ảnh gốc và tọa độ nhận diện giữ nguyên."""
+        self.focus_rect = rect
+        self.update()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.fillRect(self.rect(), QColor("#071321"))
         if self.has_frame:
-            size = self.image.size().scaled(self.size(), Qt.KeepAspectRatio)
+            source = QRectF(self.image.rect())
+            if self.focus_rect is not None:
+                clipped = source.intersected(self.focus_rect)
+                if not clipped.isEmpty():
+                    source = clipped
+            size = source.size().scaled(self.size(), Qt.KeepAspectRatio)
             rect = QRectF(
                 (self.width() - size.width()) / 2,
                 (self.height() - size.height()) / 2,
@@ -131,7 +142,7 @@ class ImageSurface(QWidget):
                 size.height(),
             )
             painter.setRenderHint(QPainter.SmoothPixmapTransform)
-            painter.drawImage(rect, self.image)
+            painter.drawImage(rect, self.image, source)
         else:
             center = self.rect().center()
             painter.setPen(QPen(QColor("#28445e"), 1))
@@ -153,3 +164,31 @@ class ImageSurface(QWidget):
                 Qt.AlignHCenter | Qt.TextWordWrap,
                 self.detail,
             )
+
+
+class TwinSurface(ImageSurface):
+    """Vẽ lại đúng kích thước viewport từ cùng ước lượng, không tự chạy thời gian."""
+
+    def __init__(self, title, detail):
+        super().__init__(title, detail)
+        self._geometry = None
+        self.estimate = None
+
+    def set_estimate(self, geometry, estimate):
+        self._geometry, self.estimate = geometry, estimate
+        self._render()
+
+    def _render(self):
+        if self._geometry is not None and self.estimate is not None:
+            from .render import twin_frame
+
+            self.set_frame(twin_frame(self._geometry, self.estimate,
+                                      max(180, self.width()), max(150, self.height())))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._render()
+
+    def clear(self):
+        self._geometry = self.estimate = None
+        super().clear()

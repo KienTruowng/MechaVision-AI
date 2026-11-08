@@ -1,4 +1,4 @@
-"""Chạy QWidget thật, kiểm tra tương tác và chụp Dashboard V2 ở hai kích thước.
+"""Chạy QWidget thật, kiểm tra tương tác và chụp Dashboard V2.1 ở hai kích thước.
 
 Video sinh trong công cụ này là fixture tổng hợp có nhãn rõ ràng; không phải
 dữ liệu đo cơ cấu thực và không được dùng để công bố độ chính xác thực tế.
@@ -147,6 +147,13 @@ def main():
         for page, name in [(0, "monitoring"), (1, "analytics")]:
             QTest.mouseClick(window.shell.nav_buttons[page], Qt.LeftButton)
             capture(name, size)
+    window.navigate(0)
+    QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
+    assert window.monitor.camera.focus_rect is None
+    capture("monitoring-full-frame", sizes[0])
+    QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
+    assert window.monitor.camera.focus_rect is not None
+    record["checks"].append("closeup_and_full_frame_toggle")
     window.navigate(2)
     window.experiments.seconds.setValue(4)
     QTest.mouseClick(window.experiments.run_button, Qt.LeftButton)
