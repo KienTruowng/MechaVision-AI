@@ -1,5 +1,6 @@
-"""Deterministic, labeled synthetic sequence. NOT real-world evidence."""
+"""Chuỗi mô phỏng có nhãn và có thể tái lập; không phải bằng chứng thực nghiệm vật lý."""
 from __future__ import annotations
+from .i18n import put_text, KEYPOINT_LABELS
 from dataclasses import dataclass
 import math
 import numpy as np
@@ -27,7 +28,7 @@ class Simulator:
 
     @staticmethod
     def angular_speed(t: float) -> float:
-        """Variable speed with short stopping and reversal intervals."""
+        """Tốc độ biến thiên, có khoảng dừng ngắn và đảo chiều."""
         if 7.0 < t < 8.2:
             return 0.0
         if 14.0 < t < 17.0:
@@ -45,7 +46,7 @@ class Simulator:
         for key,point in positions.items():
             drop_rate = {"pivot":0.0, "crank":self.cfg.crank_occlusion_rate,
                          "piston":self.cfg.piston_occlusion_rate}[key]
-            # Reproducible intervals plus occasional independent occlusions
+            # Khoảng che khuất cố định và một số lần che khuất độc lập ngẫu nhiên.
             interval_occlusion = (key == "crank" and 3.2 < self.t < 4.5) or (key == "piston" and 10 < self.t < 11.8)
             if interval_occlusion or self.rng.random() < drop_rate:
                 continue
@@ -57,7 +58,7 @@ class Simulator:
 
 
 def draw_mechanism(geometry: Geometry, theta: float, width=900, height=520,
-                   observation: Observation | None = None, title="SIMULATED MECHANISM") -> np.ndarray:
+                   observation: Observation | None = None, title="CƠ CẤU MÔ PHỎNG") -> np.ndarray:
     import cv2
     frame=np.full((height,width,3),(22,27,39),dtype=np.uint8)
     points = geometry.points(theta)
@@ -71,11 +72,11 @@ def draw_mechanism(geometry: Geometry, theta: float, width=900, height=520,
     cv2.rectangle(frame,(piston[0]-18,piston[1]-24),(piston[0]+18,piston[1]+24),(130,185,221),2)
     for p,col in ((origin,(239,242,248)),(crank,(233,187,99)),(piston,(101,219,247))):
         cv2.circle(frame,p,7,col,-1,cv2.LINE_AA)
-    cv2.putText(frame,title,(22,33),cv2.FONT_HERSHEY_SIMPLEX,.65,(200,208,224),2,cv2.LINE_AA)
-    cv2.putText(frame,"SYNTHETIC DATA - NOT A REAL CAMERA",(22,height-24),cv2.FONT_HERSHEY_SIMPLEX,.5,(148,165,188),1,cv2.LINE_AA)
+    put_text(frame,title,(22,33),cv2.FONT_HERSHEY_SIMPLEX,.65,(200,208,224),2,cv2.LINE_AA)
+    put_text(frame,"DỮ LIỆU MÔ PHỎNG — KHÔNG PHẢI PHÉP ĐO THỰC",(22,height-24),cv2.FONT_HERSHEY_SIMPLEX,.5,(148,165,188),1,cv2.LINE_AA)
     if observation:
         for name,p in observation.landmarks.items():
             pp=(round(p.x),round(p.y))
             cv2.circle(frame,pp,9,(61,214,123),2,cv2.LINE_AA)
-            cv2.putText(frame,name, (pp[0]+10,pp[1]-10),cv2.FONT_HERSHEY_SIMPLEX,.45,(61,214,123),1,cv2.LINE_AA)
+            put_text(frame,KEYPOINT_LABELS.get(name, name), (pp[0]+10,pp[1]-10),cv2.FONT_HERSHEY_SIMPLEX,.45,(61,214,123),1,cv2.LINE_AA)
     return frame

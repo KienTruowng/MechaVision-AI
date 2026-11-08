@@ -1,46 +1,49 @@
-# Software architecture
+# Kiến trúc phần mềm
 
 ```text
-   physical camera / recorded file              deterministic synthetic source
-               |                                           |
-               +----------------+--------------------------+
-                                |
-                           frame + time
-                                |
-              ArUcoDetector OR YOLOPoseDetector (real)
-                     OR synthetic noisy observation
-                                |
+Camera vật lý / video đã ghi            Nguồn mô phỏng có thể tái lập
+              └──────────────────┬──────────────────┘
+                                 ↓
+                       Khung hình + thời gian
+                                 ↓
+             ColorMarkerDetector / ArucoDetector / YOLOPoseDetector
+                     hoặc quan sát mô phỏng có nhiễu
+                                 ↓
                     Observation {pivot, crank, piston}
-                                |
-            +-------------------+----------------------+ 
-            |                   |                      |
-       RawVisualEstimator   MotionEKF           MotionEKF
-            |             (no physics)          (physics on)
-            +-------------------+----------------------+
-                                |
-                   measurements, uncertainty,
-                  tracking/predicted/lost status
-                                |
-            +-------------------+----------------------+
-            |                   |                      |
-      Qt live dashboard     CSV session logger    offline evaluation
-        Digital twin                                 + independent GT
+                 ┌───────────────┼───────────────────┐
+                 ↓               ↓                   ↓
+       RawVisualEstimator     MotionEKF           MotionEKF
+                          (physics=False)      (physics=True)
+                 └───────────────┼───────────────────┘
+                                 ↓
+                 Phép đo, độ bất định, trạng thái theo dõi
+                 ┌───────────────┼───────────────────┐
+                 ↓               ↓                   ↓
+          Bảng điều khiển Qt    Nhật ký CSV      Đánh giá ngoại tuyến
+          Mô hình động học số                  + tham chiếu độc lập
 ```
 
-- Units: 2D positions **pixels**, timestamps **seconds**, angles **radians**, angular velocity **rad/s**. UI converts to degrees and RPM.
-- `Geometry`: physical rigid joints, projection, rail offset, differentiable displacement.
-- `MotionEKF`: nonlinear observation update with robust innovation gate and Joseph covariance update. `physics=False` ablates the piston measurement. If the pivot is temporarily missing, uses the last observed pivot, so camera must stay fixed.
-- `SessionWriter`: streams CSV; absent measurements remain blank. Simulator truth appears in its own clearly identified column.
-- `dataset.py`: custom YOLO pose model expects one object `slider_crank_mechanism` and exactly **three keypoints** in order pivot / crank / piston. No generic human-pose checkpoint assumptions.
-- `gui.py`: worker thread owns camera, estimation and logging, emitting frames and measurements to Qt UI. The GUI thread owns charts and painting; model inference does not run in the GUI thread.
-- `real_evaluation.py`: joins session prediction and independent ground truth by frame number; report includes valid-coverage denominator. Ground truth data provenance remains user's responsibility.
+## Quy ước và trách nhiệm các thành phần
 
-## Open research/engineering tasks before defense
+- Đơn vị nội bộ: vị trí **pixel**, thời gian **giây**, góc **radian**, vận tốc góc **rad/s**. Giao diện đổi sang độ và vòng/phút.
+- `Geometry`: khớp cứng vật lý, phép chiếu, độ lệch ray và hàm chuyển vị khả vi.
+- `MotionEKF`: cập nhật quan sát phi tuyến, cổng loại ngoại lai theo sai lệch đổi mới và cập nhật hiệp phương sai dạng Joseph. `physics=False` loại phép đo pít-tông. Khi tâm quay tạm vắng, dùng tâm quan sát gần nhất hoặc tâm đã hiệu chuẩn; camera phải cố định.
+- `SessionWriter`: ghi CSV liên tục; phép đo thiếu để trống. Giá trị thật của bộ mô phỏng nằm riêng trong `truth_rad_synthetic_only`, không dùng làm tham chiếu thực.
+- `dataset.py`: một đối tượng cơ cấu, đúng **ba điểm** theo thứ tự `pivot` / `crank` / `piston`. Đường `initialize_dataset` dùng tên lớp `slider_crank_mechanism`; đường `split_by_session` dùng `mechanism`; cả hai đều là lớp số 0. Không đổi tên lớp hoặc thứ tự điểm khi Việt hóa.
+- `gui.py`: luồng xử lý sở hữu camera, bộ ước lượng và nhật ký, rồi phát khung hình/số đo tới giao diện. Luồng Qt sở hữu biểu đồ và vẽ giao diện; suy luận không chạy trên luồng giao diện.
+- `i18n.py`: ánh xạ nhãn tiếng Việt và vẽ Unicode trên ảnh BGR bằng Pillow. Không thay mã trạng thái, tên điểm hoặc khóa dữ liệu. Ưu tiên Segoe UI/DejaVu Sans/Noto Sans/Arial; cần cài một phông hỗ trợ tiếng Việt trên hệ điều hành.
+- `real_evaluation.py`: ghép dự báo phiên và góc tham chiếu độc lập theo số khung hình; báo cáo mẫu số của tỷ lệ bao phủ. Người thực nghiệm chịu trách nhiệm nguồn gốc và tính độc lập của tham chiếu.
 
-1. Physical jig and exact point geometry: need real photos/video.
-2. Train YOLO Pose on real engine; no engine-specific weights bundled.
-3. Build robust manual/encoder reference if possible; verify independent angle labels.
-4. Add optional homography and per-camera intrinsic calibration if viewing angle requires it.
-5. Confirm EKF uncertainty calibration and model acceleration tuning on held-out sessions.
-6. Performance benchmark on target laptop; optional conversion to ONNX if needed.
-7. More complete real-data ablation and confidence intervals, not merely synthetic reports.
+## Trạng thái và nguồn dữ liệu
+
+`TRACKING` → Đang theo dõi; `PREDICTED` → Đang dự báo; `LOST` → Mất dấu; `UNINITIALIZED` → Chưa khởi tạo. Mã trong CSV và giữa các module giữ nguyên. Khi mất dấu, không hiển thị góc/tốc độ và báo không đủ độ tin cậy. Nhãn nguồn mô phỏng, camera trực tiếp hoặc video đã ghi hiển thị riêng; tệp video không tự được xem là dữ liệu cơ cấu thực đã kiểm chứng.
+
+## Công việc cần hoàn thành trước bảo vệ
+
+1. Xác minh gá đặt, hình học và vị trí khớp từ ảnh/video cơ cấu thực.
+2. Huấn luyện YOLO Pose trên động cơ mục tiêu; repository chưa kèm trọng số này.
+3. Xây dựng tham chiếu thủ công/encoder độc lập và kiểm tra nhãn góc.
+4. Bổ sung homography và hiệu chuẩn nội tại camera nếu góc nhìn yêu cầu.
+5. Kiểm chứng hiệu chuẩn độ bất định và chỉnh nhiễu gia tốc bằng các phiên xác thực.
+6. Đo hiệu năng trên máy đích; cân nhắc ONNX khi có nhu cầu thực tế.
+7. Hoàn thiện so sánh loại bỏ thành phần trên dữ liệu thực và khoảng tin cậy theo phiên.

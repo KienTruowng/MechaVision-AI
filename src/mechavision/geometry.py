@@ -1,9 +1,9 @@
-"""Calibrated planar slider-crank kinematics in image-pixel units.
+"""Động học tay quay–con trượt phẳng đã hiệu chuẩn, theo đơn vị pixel.
 
-Coordinate convention: crank angle is measured from the positive slider-axis
-in the local x/y-up plane. The piston joint moves on y=slider_offset_px.
-Camera must be approximately perpendicular to the motion plane. All distance
-parameters must be measured for the *same physical joints* as the detections.
+Góc khuỷu tính từ chiều dương trục trượt trong mặt phẳng cục bộ x/y hướng lên.
+Khớp pít-tông chuyển động trên y=slider_offset_px. Camera cần gần vuông góc
+với mặt phẳng chuyển động. Mọi khoảng cách phải đo trên đúng các khớp vật lý
+được bộ nhận diện quan sát.
 """
 from __future__ import annotations
 from dataclasses import dataclass, asdict
@@ -25,9 +25,9 @@ class Geometry:
     def __post_init__(self):
         vals = (self.radius_px,self.rod_px,self.origin_x,self.origin_y,self.axis_deg,self.slider_offset_px)
         if not all(math.isfinite(v) for v in vals):
-            raise ValueError("Geometry values must be finite")
+            raise ValueError("Các thông số hình học phải hữu hạn")
         if self.radius_px <= 0 or self.rod_px <= abs(self.slider_offset_px)+self.radius_px:
-            raise ValueError("Full-rotation slider crank requires rod_px > abs(offset_px) + radius_px > 0")
+            raise ValueError("Cơ cấu quay toàn vòng cần rod_px > abs(slider_offset_px) + radius_px và radius_px > 0")
 
     @property
     def origin(self) -> np.ndarray:
@@ -74,11 +74,11 @@ class Geometry:
 
     @classmethod
     def from_landmarks(cls,pivot,crank,piston,axis_point)->Geometry:
-        """Calibrate from clicked joint centers at one known pose.
+        """Hiệu chuẩn từ tâm khớp được nhấp ở một tư thế xác định.
 
-        axis_point establishes positive motion axis from the fixed pivot; it
-        need not lie on the piston rail. Geometry can only be trusted if the
-        selected piston point is the actual connecting-rod joint.
+        axis_point xác định chiều dương trục chuyển động từ tâm quay, không nhất thiết
+        nằm trên ray trượt. Hình học chỉ đáng tin khi điểm pít-tông được chọn là
+        khớp thanh truyền thực sự.
         """
         O=np.asarray(pivot,dtype=float)
         P=np.asarray(crank,dtype=float)
@@ -86,9 +86,9 @@ class Geometry:
         A=np.asarray(axis_point,dtype=float)
         d=A-O
         n=np.linalg.norm(d)
-        if n<4:raise ValueError("Axis direction point too close to pivot")
+        if n<4:raise ValueError("Điểm xác định hướng trục quá gần tâm quay")
         d/=n
-        # image local x along d, local positive y to image-up side of d
+        # Trục x cục bộ dọc d; chiều dương y hướng về phía trên ảnh so với d.
         transverse=np.array([d[1],-d[0]])
         e=float(np.dot(S-O,transverse))
         r=float(np.linalg.norm(P-O))
@@ -96,12 +96,12 @@ class Geometry:
         a=math.degrees(math.atan2(d[1],d[0]))
         geo=cls(radius_px=r,rod_px=l,origin_x=float(O[0]),origin_y=float(O[1]),
                 axis_deg=a,slider_offset_px=e)
-        # If connecting rod is on the negative branch or geometry wrong, reject.
+        # Từ chối nếu thanh truyền thuộc nhánh âm hoặc hình học không phù hợp.
         theta=geo.theta_from_crank(P)
         err=abs(geo.local(S)[0]-geo.slider_x(theta))
         if err>max(4.0,0.04*l):
-            raise ValueError(f"Geometry incompatible (piston projection residual {err:.1f}px). "
-                             "Reverse axis direction, or select correct joint centers.")
+            raise ValueError(f"Hình học không tương thích (sai lệch hình chiếu pít-tông {err:.1f} px). "
+                             "Hãy đảo chiều trục hoặc chọn đúng tâm khớp.")
         return geo
 
 

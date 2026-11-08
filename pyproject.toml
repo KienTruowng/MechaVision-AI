@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mechavision-ai"
 version = "0.1.0"
-description = "Research workbench for physics-constrained visual motion estimation of a planar slider-crank mechanism"
+description = "Bộ công cụ nghiên cứu ước lượng chuyển động tay quay–con trượt phẳng bằng thị giác có ràng buộc vật lý"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = { text = "MIT" }
 authors = [{name = "MechaVision AI Research Project"}]
-dependencies = ["numpy>=1.26,<3", "opencv-contrib-python>=4.8,<5"]
+dependencies = ["numpy>=1.26,<3", "opencv-contrib-python>=4.8,<5", "Pillow>=10,<14"]
 
 [project.optional-dependencies]
 gui = ["PySide6>=6.6,<7", "pyqtgraph>=0.13,<1"]

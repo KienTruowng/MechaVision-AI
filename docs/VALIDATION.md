@@ -1,16 +1,42 @@
-# Build validation record
+# Biên bản kiểm chứng phần mềm
 
-- Automated test suite: **21 passed** in the project build environment (Python 3.13, NumPy and OpenCV installed).
-- Python syntax: `python -m compileall -q src` passed.
-- CLI simulation: `python -m mechavision simulate --seconds 4` passed.
-- CLI synthetic ablation: `python -m mechavision evaluate --seconds 24 --fps 30 --seed 42` passed.
-- ArUco marker sheet generation: `python -m mechavision markers` passed.
-- Paired replay of real-format recorded observations against independent reference-angle CSV format: exercised with **synthetic test fixture**; this validates code logic but **not real-engine accuracy**.
+## Đợt Việt hóa ngày 09/11/2026
 
-## Not verified in this environment
+Môi trường kiểm tra: Windows, Python **3.12.13**, NumPy **2.5.4**, OpenCV **4.14.0**, Pillow **13.0.0**, PySide6 **6.12.0**, PyQtGraph **0.14.0**. Qt chạy bằng nền tảng **offscreen** để chụp và kiểm tra giao diện mà không cần thiết bị camera.
 
-- **Qt desktop GUI** execution: PySide6 and PyQtGraph were unavailable. An attempted install failed because the build environment could not access the package index; source is included, but must be validated on Windows.
-- **YOLO custom training/inference**: no real mechanical recordings, annotated dataset, model weights or Ultralytics installation were available. Scripts and integration code are provided for running on the user's machine.
-- **Physical engine geometry**, real-camera calibration, absolute measurement accuracy, physical FPS / p95 latency and RTX 3050 Ti performance: not measurable remotely without the physical rig.
+| Hạng mục | Kết quả |
+|---|---|
+| `python -m pytest -q` | **30 kiểm thử đạt**: 21 kiểm thử có sẵn và 9 kiểm thử bổ sung |
+| `python -m compileall -q src` | Đạt |
+| `python -m ruff check src tests/test_localization.py tests/test_gui_localization.py --select F821,F822,F823,E9` | Đạt kiểm tra tên chưa định nghĩa và lỗi cú pháp được chọn; không phải kiểm tra toàn bộ quy tắc định dạng |
+| `python -m mechavision simulate --seconds 4` | Tạo được phiên CSV mô phỏng |
+| `python -m mechavision evaluate --seconds 24 --fps 30 --seed 42` | Tạo được báo cáo và CSV so sánh ba phương pháp trên mô phỏng |
+| `python -m mechavision markers` | Tạo được trang ArUco với nhãn tiếng Việt; kiểm thử nhận diện dấu chuẩn đạt |
+| `python -m mechavision demo-video --seconds 2` | Tạo được MP4 có nhãn mô phỏng bằng tiếng Việt |
+| `live --no-window --save-video` | Đọc video mô phỏng để thử luồng, ghi được CSV và video có lớp phủ; không phải thử camera thật |
+| `extract`, `init-dataset` | Trích được ảnh từ video thử và tạo được cấu trúc dữ liệu, hướng dẫn gán nhãn tiếng Việt |
+| Bảng điều khiển Qt | Khởi động, bắt đầu/dừng mô phỏng, đọc hết 60 khung của video thử, cập nhật số liệu/biểu đồ và nhật ký |
+| Hiển thị | Kiểm tra ảnh chụp ở cửa sổ 1280×800 và 1450×900; chữ có dấu hiển thị được, bố cục có cuộn khi cửa sổ quá nhỏ |
+| Hộp thoại và biểu đồ | Kiểm tra hộp chọn tệp, hộp xuất biểu đồ, nhãn tham số; xuất PNG và CSV UTF-8 thành công |
+| Trạng thái | Kiểm tra chưa khởi tạo, đang theo dõi, dự báo và mất dấu; góc/tốc độ để trống khi không có ước lượng hợp lệ |
+| Phát lại và đánh giá góc | Bộ kiểm thử đối chiếu ba phương pháp với dữ liệu thử tổng hợp ở định dạng phiên thực và tham chiếu độc lập |
 
-Do not treat the simulator's benchmark results as a claim about the real mechanism or industrial machine monitoring.
+Kiểm thử bổ sung bảo vệ trợ giúp/lỗi tiếng Việt của dòng lệnh, tính toàn vẹn của chữ Unicode trong ảnh BGR, khả năng khởi chạy đúng nguồn mô phỏng sau khi đổi nhãn, cảnh báo thiếu hiệu chuẩn, giá trị lựa chọn xuất CSV và tiêu đề tiếng Việt/giá trị số trong CSV.
+
+Đã đối chiếu cấu trúc cú pháp với phiên bản gốc của các phần tính toán: động học, EKF, nhận diện dấu màu/ArUco/YOLO, mô phỏng, định dạng nhãn, trích/chia dữ liệu và đánh giá. Sau khi bỏ văn bản giải thích/thông báo khỏi phép so sánh, các biểu thức, hằng số số học và toán tử trong các phần này giữ nguyên. Mã trạng thái, khóa dữ liệu và tên điểm tiếp tục được kiểm tra qua các kiểm thử hiện có.
+
+Trong môi trường bị giới hạn quyền ghi, lần chạy pytest ban đầu không tạo được thư mục tạm mặc định. Đã đặt biến môi trường `TEMP` và `TMP` tới một thư mục tạm được phép ghi rồi chạy lại đúng lệnh kiểm thử; không sửa thuật toán để xử lý lỗi môi trường. Khi xuất biểu đồ, đã phát hiện và sửa lỗi bảng mã mặc định Windows bằng bộ xuất CSV UTF-8 trong ứng dụng.
+
+Các lệnh trong bảng được chạy với đường dẫn đầu ra riêng cho dữ liệu kiểm chứng. Không đưa nhật ký hay video sinh tự động vào repository. Hai ảnh trong `assets/` được tạo lại bằng bộ vẽ của dự án để đổi nhãn sang tiếng Việt; cảnh báo trong tệp mẫu mô phỏng được dịch, các số liệu mẫu giữ nguyên.
+
+## Chưa thể xác minh
+
+- Camera/động cơ vật lý, thao tác nhấp hiệu chuẩn và gán nhãn trực tiếp trong cửa sổ OpenCV trên thiết bị của người dùng.
+- Độ chính xác đo thực, độ trễ toàn trình/phân vị 95%, FPS trên cơ cấu thực và hiệu năng RTX 3050 Ti.
+- Huấn luyện/suy luận YOLO Pose với dữ liệu và trọng số riêng cho động cơ: chưa có dữ liệu thực, nhãn hoặc checkpoint phù hợp; đợt kiểm chứng này không huấn luyện mô hình.
+- Giao diện trên mọi hệ điều hành, phông hệ thống, độ phân giải và mức thu phóng màn hình. Ảnh chụp offscreen chưa thay thế kiểm tra trực tiếp trên màn hình đích.
+- Thông báo kỹ thuật do thư viện/hệ điều hành tự sinh có thể dùng ngôn ngữ của thư viện/hệ điều hành. Nội dung pháp lý `LICENSE`, các định danh và định dạng trao đổi giữ nguyên.
+
+Biên bản gốc của dự án ghi nhận 21 kiểm thử đạt trên Python 3.13 và chưa chạy được Qt do thiếu phụ thuộc. Kết quả Qt ở trên là kiểm chứng mới trong môi trường được nêu rõ; không suy rộng thành kiểm chứng phần cứng hoặc huấn luyện trên động cơ thực.
+
+**Không dùng kết quả mô phỏng để khẳng định độ chính xác trên cơ cấu thật hoặc khả năng giám sát/chẩn đoán công nghiệp.**

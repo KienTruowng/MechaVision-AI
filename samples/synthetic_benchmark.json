@@ -13,7 +13,7 @@
       "axis_deg": 0.0,
       "slider_offset_px": 0.0
     },
-    "warning": "No trained AI detector or physical ground-truth evaluation"
+    "warning": "Chưa có bộ nhận diện AI được huấn luyện hoặc đánh giá bằng tham chiếu đo thực tế"
   },
   "methods": {
     "raw_cv_baseline": {
