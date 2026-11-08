@@ -32,7 +32,8 @@ class Worker(QThread):
                     t0=time.perf_counter()
                     obs=simulator.step(1/30)
                     metrics=processor.step(obs)
-                    frame=draw_mechanism(geo,obs.truth_theta,900,520,obs)
+                    frame=draw_mechanism(geo,obs.truth_theta,900,520)
+                    draw_observations(frame,obs)
                     est=metrics['physics']
                     twin=twin_frame(geo,est)
                     decorate_video(frame,est.status,metrics['fps'])

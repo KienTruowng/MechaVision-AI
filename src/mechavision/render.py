@@ -30,8 +30,9 @@ def twin_frame(geo,est,width=620,height=390):
         put_text(img,'KHÔNG ĐỦ ĐỘ TIN CẬY ĐỂ ƯỚC LƯỢNG',(60,height//2),
                     cv2.FONT_HERSHEY_SIMPLEX,.58,(124,140,163),1,cv2.LINE_AA)
         return img
-    scale=min((width-110)/(2*(geo.rod_px+geo.radius_px)),(height-110)/(3*geo.radius_px))
-    pivot=np.array([max(95,width*.26),height*.53],dtype=float)
+    scale=min((width-130)/(geo.rod_px+2*geo.radius_px),
+              (height-155)/(2*geo.radius_px+abs(geo.slider_offset_px)))
+    pivot=np.array([35+geo.radius_px*scale,height*.53],dtype=float)
     def xy(pos):return tuple(np.rint(pivot+np.array([pos[0],-pos[1]])*scale).astype(int))
     r=geo.radius_px
     O=xy((0,0));C=xy((r*np.cos(est.theta),r*np.sin(est.theta)))
@@ -56,8 +57,8 @@ def twin_frame(geo,est,width=620,height=390):
 
 
 def decorate_video(frame,status,fps):
-    cv2.rectangle(frame,(0,0),(frame.shape[1],45),(20,29,46),-1)
-    color={'TRACKING':(96,209,144),'PREDICTED':(60,179,242),'LOST':(89,90,233)}.get(status,(177,177,177))
+    cv2.rectangle(frame,(0,0),(frame.shape[1],45),(46,29,20),-1)
+    color={'TRACKING':(177,213,72),'PREDICTED':(106,195,240),'LOST':(135,123,255)}.get(status,(177,177,177))
     put_text(frame,f'{status_text(status)}  |  {fps:.1f} khung/giây xử lý',(15,29),
                 cv2.FONT_HERSHEY_SIMPLEX,.61,color,2,cv2.LINE_AA)
     return frame

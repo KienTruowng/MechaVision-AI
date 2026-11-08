@@ -151,6 +151,11 @@ class ExperimentsPage(QWidget):
         self.worker.failed.connect(self._error)
         self.worker.finished.connect(self._finished)
         self._enable_setup(False)
+        self.results_table.setRowCount(0)
+        self.open_button.setEnabled(False)
+        self.last_output = None
+        self.last_result = None
+        self.output_label.setText('Chưa có báo cáo cho lần chạy này.')
         self.result_badge.setText('ĐANG ĐÁNH GIÁ')
         set_tone(self.result_badge, 'warning')
         self.result_note.setText('Đang chạy quy trình đánh giá. Giao diện giám sát vẫn có thể sử dụng.')
@@ -210,3 +215,7 @@ class ExperimentsPage(QWidget):
         self.sessions_table.item(row, 3).setText(str(count))
         self.sessions_table.item(row, 4).setText('Lỗi' if error else 'Đã kết thúc')
         self.session_file.setText(log_path)
+
+    def update_session(self, row, count):
+        self.sessions_table.item(row, 3).setText(str(count))
+        self.sessions_table.item(row, 4).setText('Đang phân tích')

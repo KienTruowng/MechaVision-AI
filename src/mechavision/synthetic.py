@@ -60,16 +60,16 @@ class Simulator:
 def draw_mechanism(geometry: Geometry, theta: float, width=900, height=520,
                    observation: Observation | None = None, title="CƠ CẤU MÔ PHỎNG") -> np.ndarray:
     import cv2
-    frame=np.full((height,width,3),(22,27,39),dtype=np.uint8)
+    frame=np.full((height,width,3),(31,19,7),dtype=np.uint8)
     points = geometry.points(theta)
     def pos(p): return tuple(np.rint(p).astype(int))
     origin, crank, piston = map(lambda k:pos(points[k]), ("pivot","crank","piston"))
     cv2.line(frame,(0,origin[1]),(width,origin[1]),(65,67,78),1)
     cv2.circle(frame,origin,round(geometry.radius_px), (50,67,90),1,cv2.LINE_AA)
-    cv2.line(frame,origin,crank,(222,161,76),9,cv2.LINE_AA)
-    cv2.line(frame,crank,piston,(91,197,220),8,cv2.LINE_AA)
-    cv2.rectangle(frame,(piston[0]-18,piston[1]-24),(piston[0]+18,piston[1]+24),(78,151,200),-1)
-    cv2.rectangle(frame,(piston[0]-18,piston[1]-24),(piston[0]+18,piston[1]+24),(130,185,221),2)
+    cv2.line(frame,origin,crank,(255,143,67),9,cv2.LINE_AA)
+    cv2.line(frame,crank,piston,(237,212,80),8,cv2.LINE_AA)
+    cv2.rectangle(frame,(piston[0]-18,piston[1]-24),(piston[0]+18,piston[1]+24),(104,73,34),-1)
+    cv2.rectangle(frame,(piston[0]-18,piston[1]-24),(piston[0]+18,piston[1]+24),(237,212,80),2)
     for p,col in ((origin,(239,242,248)),(crank,(233,187,99)),(piston,(101,219,247))):
         cv2.circle(frame,p,7,col,-1,cv2.LINE_AA)
     put_text(frame,title,(22,33),cv2.FONT_HERSHEY_SIMPLEX,.65,(200,208,224),2,cv2.LINE_AA)

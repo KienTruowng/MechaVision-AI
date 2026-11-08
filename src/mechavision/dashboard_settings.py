@@ -14,6 +14,7 @@ class SettingsPage(QScrollArea):
         self._last_mode = 'simulation'
         self._sources = {'camera': '0', 'video': ''}
         body = QWidget()
+        body.setObjectName('shell')
         self.setWidget(body)
         layout = QVBoxLayout(body)
         layout.setContentsMargins(0, 0, 0, 0)

@@ -28,6 +28,7 @@ QLabel#badge { border-radius:5px; padding:5px 9px; font-size:10px; font-weight:6
 QLabel#badge[tone="warning"] { background:#392d19; color:#f0c36a; }
 QLabel#badge[tone="error"] { background:#3d202b; color:#ff939b; }
 QLabel#badge[tone="muted"] { background:#1b2b3e; color:#a1b3c8; }
+QLabel#badge[tone="valid"] { background:#13372f; color:#54d9b6; }
 QPushButton { color:#c6d7e9; background:#14273d; border:1px solid #29415d; border-radius:6px; padding:8px 13px; font-weight:600; }
 QPushButton:hover { background:#1e3953; border-color:#416782; }
 QPushButton:pressed { background:#0a2035; }

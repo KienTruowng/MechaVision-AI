@@ -20,6 +20,8 @@ def text_label(text, role=None, wrap=False):
 def badge(text, tone='data'):
     label = text_label(text, 'badge')
     label.setAlignment(Qt.AlignCenter)
+    label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+    label.setMaximumHeight(28)
     set_tone(label, tone)
     return label
 
@@ -75,7 +77,7 @@ class KpiCard(QFrame):
         top.addWidget(text_label(unit, 'eyebrow'))
         layout.addLayout(top)
         self.value = text_label('—', 'kpi_state' if state else 'kpi_value')
-        self.value.setMinimumHeight(28)
+        self.value.setMinimumHeight(38 if not state else 28)
         self.value.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(self.value)
         layout.addWidget(text_label(caption, 'muted'))

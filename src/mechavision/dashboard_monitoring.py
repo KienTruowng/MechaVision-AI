@@ -4,7 +4,7 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSplitter, QTableWidgetItem
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSplitter, QTableWidgetItem, QSizePolicy
 from .dashboard_theme import COLORS
 from .dashboard_widgets import panel, text_label, badge, set_tone, KpiCard, ImageSurface, table
 from .i18n import status_text
@@ -115,7 +115,13 @@ class MonitoringPage(QWidget):
         camera, camera_layout = panel('QUAN SÁT THỊ GIÁC', trailing=self.camera_meta)
         self.camera = ImageSurface('Chưa có khung hình', 'Bắt đầu phiên để xem ảnh và điểm đặc trưng.')
         camera_layout.addWidget(self.camera, 1)
-        camera_layout.addWidget(text_label('● Tâm quay     ● Chốt khuỷu     ● Khớp pít-tông', 'muted'))
+        key = QHBoxLayout()
+        for title,color in [('Tâm quay','#d3e2ee'),('Chốt khuỷu','#50d4ed'),('Khớp pít-tông','#48d5b1')]:
+            label=text_label('● '+title,'muted')
+            label.setStyleSheet('color:'+color+';')
+            key.addWidget(label)
+        key.addStretch()
+        camera_layout.addLayout(key)
         twin, twin_layout = panel('MÔ HÌNH ĐỘNG HỌC SỐ', trailing=text_label('2D · Cùng trạng thái EKF', 'muted'))
         self.twin = ImageSurface('Chưa có trạng thái ước lượng', 'Mô hình chỉ cập nhật khi có ước lượng hợp lệ hoặc dự báo.')
         twin_layout.addWidget(self.twin, 1)
@@ -127,7 +133,11 @@ class MonitoringPage(QWidget):
 
         self.kpis = KpiStrip()
         layout.addWidget(self.kpis)
-        bottom = QHBoxLayout()
+        bottom_widget = QWidget()
+        bottom_widget.setFixedHeight(174)
+        bottom_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        bottom = QHBoxLayout(bottom_widget)
+        bottom.setContentsMargins(0, 0, 0, 0)
         bottom.setSpacing(10)
         trend, trend_layout = panel('XU HƯỚNG GÓC QUAY', trailing=text_label('15 giây gần nhất', 'muted'))
         self.overview = make_plot('Góc', '°')
@@ -146,7 +156,7 @@ class MonitoringPage(QWidget):
         status_layout.addWidget(self.status_table)
         bottom.addWidget(trend, 2)
         bottom.addWidget(status, 1)
-        layout.addLayout(bottom)
+        layout.addWidget(bottom_widget)
         self.confidence_label = text_label('Chưa có ước lượng để đánh giá độ tin cậy.', 'muted', True)
         layout.addWidget(self.confidence_label)
 
