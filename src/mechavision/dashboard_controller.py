@@ -61,3 +61,27 @@ class Worker(QThread):
             self.ended.emit()
 
 
+class EvaluationWorker(QThread):
+    """Chạy nguyên quy trình đánh giá hiện có ngoài luồng giao diện."""
+    completed = Signal(object, str)
+    failed = Signal(str)
+
+    def __init__(self, mode, parameters, output):
+        super().__init__()
+        self.mode = mode
+        self.parameters = dict(parameters)
+        self.output = output
+
+    def run(self):
+        try:
+            if self.mode == 'synthetic':
+                from .evaluation import run_evaluation
+                result = run_evaluation(out_dir=self.output, **self.parameters)
+            else:
+                from .real_ablation import real_ablation
+                result = real_ablation(out_dir=self.output, **self.parameters)
+            self.completed.emit(result, self.output)
+        except Exception as error:
+            self.failed.emit(f'{type(error).__name__}: {error}')
+
+
