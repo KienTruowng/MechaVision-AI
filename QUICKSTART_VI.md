@@ -15,7 +15,7 @@ py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m mechavision gui
 ```
 
-Chọn **Cài đặt → Loại nguồn → Mô phỏng**, rồi **Bắt đầu phiên**. Trang **Giám sát** hiển thị camera/mô hình số và KPI; trang **Phân tích** có bốn biểu đồ lớn; trang **Thực nghiệm** chạy đánh giá và lưu JSON/CSV. Nhãn **MÔ PHỎNG** xác định dữ liệu tổng hợp. **Đang theo dõi**, **Đang dự báo**, **Mất dấu** và **Chưa khởi tạo** mô tả bộ ước lượng, không xác nhận nguồn dữ liệu là đo thực. Khi không đủ độ tin cậy, góc/tốc độ được để trống và mô hình số không tiếp tục chuyển động. Xem [hướng dẫn Dashboard V2](docs/DASHBOARD_V2.md).
+Chọn **Cài đặt → Loại nguồn → Mô phỏng**, rồi **Bắt đầu phiên**. Trang **Giám sát** hiển thị camera/mô hình số và KPI; trang **Phân tích** có năm biểu đồ; trang **Thực nghiệm** chạy đánh giá và lưu JSON/CSV. Nhãn **MÔ PHỎNG** xác định dữ liệu tổng hợp. **Đang theo dõi**, **Đang dự báo**, **Mất dấu** và **Chưa khởi tạo** mô tả bộ ước lượng, không xác nhận nguồn dữ liệu là đo thực. Khi không đủ độ tin cậy, góc/tốc độ được để trống và mô hình số không tiếp tục chuyển động. Xem [bàn giao Dashboard V3](docs/HANDOFF.md).
 
 ## Kiểm thử và chạy thuật toán
 

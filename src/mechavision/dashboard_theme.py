@@ -105,4 +105,3 @@ QFrame#kpi { border-top:2px solid #2e697b; border-radius:7px; }
 QLabel#eyebrow { font-size:9px; letter-spacing:1px; }
 QPushButton#nav:checked { border-left:3px solid #56d8e6; background:#103340; color:#a0e7ee; }
 '''
-
