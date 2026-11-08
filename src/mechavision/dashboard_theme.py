@@ -1,14 +1,47 @@
 """Design system cho Dashboard V2: màu, kiểu chữ và khoảng cách thống nhất."""
 
-SPACING = {'xs': 4, 'sm': 8, 'md': 12, 'lg': 16, 'xl': 24}
+SPACING = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24}
 COLORS = {
-    'background': '#07111f', 'panel': '#0e1c2e', 'border': '#203249',
-    'text': '#dce7f4', 'muted': '#8298b1', 'cyan': '#50d4ed',
-    'blue': '#438fff', 'valid': '#48d5b1', 'warning': '#f0c36a',
-    'error': '#ff7b87',
+    "background": "#07111f",
+    "panel": "#0e1c2e",
+    "border": "#203249",
+    "text": "#dce7f4",
+    "muted": "#8298b1",
+    "cyan": "#50d4ed",
+    "blue": "#438fff",
+    "valid": "#48d5b1",
+    "warning": "#f0c36a",
+    "error": "#ff7b87",
 }
 
-STYLE = '''
+
+def apply_application_theme(app):
+    """Bảng màu Qt thống nhất cho cả điều khiển chuẩn và nút tăng/giảm."""
+    from PySide6.QtGui import QPalette, QColor
+
+    if getattr(app, "_mechavision_theme_applied", False):
+        return
+    app.setStyle("Fusion")
+    palette = QPalette()
+    for role, color in [
+        (QPalette.Window, COLORS["background"]),
+        (QPalette.WindowText, COLORS["text"]),
+        (QPalette.Base, "#081625"),
+        (QPalette.AlternateBase, "#102135"),
+        (QPalette.Text, COLORS["text"]),
+        (QPalette.Button, "#14273d"),
+        (QPalette.ButtonText, COLORS["text"]),
+        (QPalette.Highlight, "#205475"),
+        (QPalette.HighlightedText, "#ffffff"),
+        (QPalette.ToolTipBase, "#18324b"),
+        (QPalette.ToolTipText, "#e9f4ff"),
+    ]:
+        palette.setColor(role, QColor(color))
+    app.setPalette(palette)
+    app._mechavision_theme_applied = True
+
+
+STYLE = """
 QWidget { color:#dce7f4; font-family:"Segoe UI"; font-size:12px; }
 QMainWindow, QWidget#shell { background:#07111f; }
 QFrame#sidebar { background:#0a1625; border-right:1px solid #1b2b40; }
@@ -61,4 +94,4 @@ QScrollBar:horizontal { height:8px; background:#0a1523; }
 QScrollBar::handle:horizontal { background:#2b435d; border-radius:4px; }
 QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal { width:0; }
 QToolTip { background:#18324b; color:#e9f4ff; border:1px solid #395a77; padding:6px; }
-'''
+"""

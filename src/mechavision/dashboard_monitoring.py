@@ -1,31 +1,57 @@
 """Trang Giám sát: viewport, KPI và trạng thái từ phiên đang xử lý."""
+
 import math
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSplitter, QTableWidgetItem, QSizePolicy
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QSplitter,
+    QTableWidgetItem,
+    QSizePolicy,
+)
 from .dashboard_theme import COLORS
-from .dashboard_widgets import panel, text_label, badge, set_tone, KpiCard, ImageSurface, table
+from .dashboard_widgets import (
+    panel,
+    text_label,
+    badge,
+    set_tone,
+    KpiCard,
+    ImageSurface,
+    table,
+)
 from .i18n import status_text
 
-SOURCE_LABELS = {'simulation': 'MÔ PHỎNG', 'camera': 'CAMERA TRỰC TIẾP', 'video': 'VIDEO ĐÃ GHI'}
-SOURCE_NOTICES = {
-    'simulation': 'Dữ liệu tổng hợp • Không phải phép đo động cơ thực',
-    'camera': 'Phép đo từ camera • Độ chính xác phụ thuộc hiệu chuẩn và bố trí cơ cấu',
-    'video': 'Phân tích tệp đã ghi • Cần xác minh nguồn gốc video và hiệu chuẩn',
+SOURCE_LABELS = {
+    "simulation": "MÔ PHỎNG",
+    "camera": "CAMERA TRỰC TIẾP",
+    "video": "VIDEO ĐÃ GHI",
 }
-STATUS_TONES = {'TRACKING': 'valid', 'PREDICTED': 'warning', 'LOST': 'error', 'UNINITIALIZED': 'muted'}
+SOURCE_NOTICES = {
+    "simulation": "Dữ liệu tổng hợp • Không phải phép đo động cơ thực",
+    "camera": "Phép đo từ camera • Độ chính xác phụ thuộc hiệu chuẩn và bố trí cơ cấu",
+    "video": "Phân tích tệp đã ghi • Cần xác minh nguồn gốc video và hiệu chuẩn",
+}
+STATUS_TONES = {
+    "TRACKING": "valid",
+    "PREDICTED": "warning",
+    "LOST": "error",
+    "UNINITIALIZED": "muted",
+}
 STATUS_DETAILS = {
-    'TRACKING': 'Có quan sát được chấp nhận. Độ bất định là ước lượng của bộ lọc, chưa phải độ chính xác đo thực.',
-    'PREDICTED': 'Dự báo ngắn hạn theo mô hình; chưa có quan sát mới được chấp nhận.',
-    'LOST': 'Không đủ độ tin cậy. Đã ngừng hiển thị góc, tốc độ và chuyển động mô hình.',
-    'UNINITIALIZED': 'Chưa khởi tạo. Cần quan sát chốt khuỷu để bắt đầu ước lượng.',
+    "TRACKING": "Có quan sát được chấp nhận. Độ bất định là ước lượng của bộ lọc, chưa phải độ chính xác đo thực.",
+    "PREDICTED": "Dự báo ngắn hạn theo mô hình; chưa có quan sát mới được chấp nhận.",
+    "LOST": "Không đủ độ tin cậy. Đã ngừng hiển thị góc, tốc độ và chuyển động mô hình.",
+    "UNINITIALIZED": "Chưa khởi tạo. Cần quan sát chốt khuỷu để bắt đầu ước lượng.",
 }
 
 
 def value_text(value, precision=1):
-    return '—' if value is None or not math.isfinite(value) else f'{value:.{precision}f}'
+    return (
+        "—" if value is None or not math.isfinite(value) else f"{value:.{precision}f}"
+    )
 
 
 class KpiStrip(QWidget):
@@ -36,52 +62,73 @@ class KpiStrip(QWidget):
         layout.setSpacing(9)
         self.labels = {}
         for name, title, unit, caption in [
-            ('angle', 'Góc quay', '°', 'Góc liên tục · EKF vật lý'),
-            ('rpm', 'Tốc độ quay', 'vòng/phút', 'Có dấu theo chiều quay'),
-            ('discrepancy', 'Sai lệch động học', 'px', 'Quan sát so với mô hình'),
-            ('sigma', 'Độ bất định', '°', 'σθ · Độ lệch chuẩn góc'),
-            ('fps', 'Nhịp xử lý', 'khung/s', 'Nhịp cập nhật của phiên'),
-            ('state', 'Trạng thái', '', 'Chất lượng theo dõi'),
+            ("angle", "Góc quay", "°", "Góc liên tục · EKF vật lý"),
+            ("rpm", "Tốc độ quay", "vòng/phút", "Có dấu theo chiều quay"),
+            ("discrepancy", "Sai lệch động học", "px", "Quan sát so với mô hình"),
+            ("sigma", "Độ bất định", "°", "σθ · Độ lệch chuẩn góc"),
+            ("fps", "Nhịp xử lý", "khung/s", "Nhịp cập nhật của phiên"),
+            ("state", "Trạng thái", "", "Chất lượng theo dõi"),
         ]:
-            card = KpiCard(title, unit, caption, state=name == 'state')
+            card = KpiCard(title, unit, caption, state=name == "state")
             self.labels[name] = card.value
             layout.addWidget(card, 1)
-        self.labels['sigma'].setToolTip('Độ lệch chuẩn góc do EKF ước lượng; cần kiểm chứng hiệu chuẩn riêng.')
-        self.labels['fps'].setToolTip('Nhịp gọi luồng xử lý hiện có; không phải độ trễ toàn trình camera hoặc benchmark GPU.')
-        self.labels['discrepancy'].setToolTip('Sai lệch vị trí pít-tông so với góc chốt khuỷu theo mô hình; không chẩn đoán hư hỏng.')
+        self.labels["sigma"].setToolTip(
+            "Độ lệch chuẩn góc do EKF ước lượng; cần kiểm chứng hiệu chuẩn riêng."
+        )
+        self.labels["fps"].setToolTip(
+            "Nhịp gọi luồng xử lý hiện có; không phải độ trễ toàn trình camera hoặc benchmark GPU."
+        )
+        self.labels["discrepancy"].setToolTip(
+            "Sai lệch vị trí pít-tông so với góc chốt khuỷu theo mô hình; không chẩn đoán hư hỏng."
+        )
 
     def clear(self):
         for label in self.labels.values():
-            label.setText('—')
+            label.setText("—")
+        self.labels["state"].setStyleSheet("")
 
     def update_metrics(self, metrics):
-        est = metrics['physics']
-        self.labels['angle'].setText(value_text(math.degrees(est.theta) if est.theta is not None else None))
-        self.labels['rpm'].setText(value_text(est.rpm))
-        self.labels['discrepancy'].setText(value_text(est.kinematic_discrepancy_px))
-        self.labels['sigma'].setText(value_text(math.degrees(est.sigma_theta) if est.sigma_theta is not None else None))
-        self.labels['fps'].setText(value_text(metrics['fps'] if metrics['fps'] > 0 else None))
-        self.labels['state'].setText(status_text(est.status))
-        color = {'TRACKING': COLORS['valid'], 'PREDICTED': COLORS['warning'],
-                 'LOST': COLORS['error']}.get(est.status, COLORS['muted'])
-        self.labels['state'].setStyleSheet(f'color:{color};')
+        est = metrics["physics"]
+        self.labels["angle"].setText(
+            value_text(math.degrees(est.theta) if est.theta is not None else None)
+        )
+        self.labels["rpm"].setText(value_text(est.rpm))
+        self.labels["discrepancy"].setText(value_text(est.kinematic_discrepancy_px))
+        self.labels["sigma"].setText(
+            value_text(
+                math.degrees(est.sigma_theta) if est.sigma_theta is not None else None
+            )
+        )
+        self.labels["fps"].setText(
+            value_text(metrics["fps"] if metrics["fps"] > 0 else None)
+        )
+        self.labels["state"].setText(status_text(est.status))
+        color = {
+            "TRACKING": COLORS["valid"],
+            "PREDICTED": COLORS["warning"],
+            "LOST": COLORS["error"],
+        }.get(est.status, COLORS["muted"])
+        self.labels["state"].setStyleSheet(f"color:{color};")
 
 
 def make_plot(y_label, unit, legend=True):
-    plot = pg.PlotWidget(background=COLORS['panel'])
+    plot = pg.PlotWidget(background=COLORS["panel"])
     plot.setMinimumSize(160, 100)
     item = plot.getPlotItem()
-    item.setLabel('left', y_label, units=unit, color=COLORS['muted'])
-    item.setLabel('bottom', 'Thời gian phiên', units='s', color=COLORS['muted'])
-    item.showGrid(x=False, y=True, alpha=.12)
-    item.setDefaultPadding(.04)
+    item.setLabel("left", y_label, units=unit, color=COLORS["muted"])
+    item.setLabel("bottom", "Thời gian phiên", units="s", color=COLORS["muted"])
+    item.showGrid(x=False, y=True, alpha=0.12)
+    item.setDefaultPadding(0.04)
     item.setMenuEnabled(True)
-    for axis in ('left', 'bottom'):
-        item.getAxis(axis).setPen(pg.mkPen('#30445b'))
-        item.getAxis(axis).setTextPen(pg.mkPen('#8ca3bc'))
+    for axis in ("left", "bottom"):
+        item.getAxis(axis).setPen(pg.mkPen("#30445b"))
+        item.getAxis(axis).setTextPen(pg.mkPen("#8ca3bc"))
         item.getAxis(axis).setStyle(autoExpandTextSpace=True)
+        item.getAxis(axis).enableAutoSIPrefix(False)
     if legend:
-        key = item.addLegend(offset=(10, 6), labelTextColor='#aebfd2', labelTextSize='9pt')
+        key = item.addLegend(
+            offset=(10, 6), labelTextColor="#aebfd2", labelTextSize="9pt"
+        )
         key.setColumnCount(3)
         key.setBrush(pg.mkBrush(14, 28, 46, 215))
         key.setPen(pg.mkPen(None))
@@ -90,7 +137,7 @@ def make_plot(y_label, unit, legend=True):
 
 def curve(plot, name, color, width=2, dashed=False):
     pen = pg.mkPen(color, width=width, style=Qt.DashLine if dashed else Qt.SolidLine)
-    return plot.plot(pen=pen, name=name, connect='finite', antialias=True)
+    return plot.plot(pen=pen, name=name, connect="finite", antialias=True)
 
 
 class MonitoringPage(QWidget):
@@ -100,32 +147,54 @@ class MonitoringPage(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
         notice = QHBoxLayout()
-        self.source_badge = badge('CHƯA CÓ NGUỒN', 'muted')
+        self.source_badge = badge("CHƯA CÓ NGUỒN", "muted")
+        self.source_badge.setMinimumWidth(112)
         notice.addWidget(self.source_badge)
-        self.banner = text_label('Bắt đầu phiên mô phỏng hoặc cấu hình camera/video để quan sát.', 'muted', True)
+        self.banner = text_label(
+            "Bắt đầu phiên mô phỏng hoặc cấu hình camera/video để quan sát.",
+            "muted",
+            True,
+        )
         notice.addWidget(self.banner, 1)
-        self.tracking_badge = badge('CHƯA CÓ DỮ LIỆU', 'muted')
+        self.tracking_badge = badge("CHƯA CÓ DỮ LIỆU", "muted")
+        self.tracking_badge.setMinimumWidth(118)
         notice.addWidget(self.tracking_badge)
         layout.addLayout(notice)
 
         self.media_splitter = QSplitter(Qt.Horizontal)
         self.media_splitter.setHandleWidth(8)
         self.media_splitter.setChildrenCollapsible(False)
-        self.camera_meta = text_label('Chờ nguồn', 'muted')
-        camera, camera_layout = panel('QUAN SÁT THỊ GIÁC', trailing=self.camera_meta)
-        self.camera = ImageSurface('Chưa có khung hình', 'Bắt đầu phiên để xem ảnh và điểm đặc trưng.')
+        self.camera_meta = text_label("Chờ nguồn", "muted")
+        self.camera_meta.setMinimumWidth(164)
+        self.camera_meta.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        camera, camera_layout = panel("QUAN SÁT THỊ GIÁC", trailing=self.camera_meta)
+        self.camera = ImageSurface(
+            "Chưa có khung hình", "Bắt đầu phiên để xem ảnh và điểm đặc trưng."
+        )
         camera_layout.addWidget(self.camera, 1)
         key = QHBoxLayout()
-        for title,color in [('Tâm quay','#d3e2ee'),('Chốt khuỷu','#50d4ed'),('Khớp pít-tông','#48d5b1')]:
-            label=text_label('● '+title,'muted')
-            label.setStyleSheet('color:'+color+';')
+        for title, color in [
+            ("Tâm quay", "#d3e2ee"),
+            ("Chốt khuỷu", "#50d4ed"),
+            ("Khớp pít-tông", "#48d5b1"),
+        ]:
+            label = text_label("● " + title, "muted")
+            label.setStyleSheet("color:" + color + ";")
             key.addWidget(label)
         key.addStretch()
         camera_layout.addLayout(key)
-        twin, twin_layout = panel('MÔ HÌNH ĐỘNG HỌC SỐ', trailing=text_label('2D · Cùng trạng thái EKF', 'muted'))
-        self.twin = ImageSurface('Chưa có trạng thái ước lượng', 'Mô hình chỉ cập nhật khi có ước lượng hợp lệ hoặc dự báo.')
+        twin, twin_layout = panel(
+            "MÔ HÌNH ĐỘNG HỌC SỐ",
+            trailing=text_label("2D · Cùng trạng thái EKF", "muted"),
+        )
+        self.twin = ImageSurface(
+            "Chưa có trạng thái ước lượng",
+            "Mô hình chỉ cập nhật khi có ước lượng hợp lệ hoặc dự báo.",
+        )
         twin_layout.addWidget(self.twin, 1)
-        twin_layout.addWidget(text_label('Từ kết quả ước lượng • Không phải cảm biến độc lập', 'muted'))
+        twin_layout.addWidget(
+            text_label("Từ kết quả ước lượng • Không phải cảm biến độc lập", "muted")
+        )
         self.media_splitter.addWidget(camera)
         self.media_splitter.addWidget(twin)
         self.media_splitter.setSizes([650, 580])
@@ -139,25 +208,33 @@ class MonitoringPage(QWidget):
         bottom = QHBoxLayout(bottom_widget)
         bottom.setContentsMargins(0, 0, 0, 0)
         bottom.setSpacing(10)
-        trend, trend_layout = panel('XU HƯỚNG GÓC QUAY', trailing=text_label('15 giây gần nhất', 'muted'))
-        self.overview = make_plot('Góc', '°')
-        self.raw_curve = curve(self.overview, 'Thị giác trực tiếp', '#f0bf65', 1.3)
-        self.temporal_curve = curve(self.overview, 'EKF thời gian', '#438fff', 1.5, True)
-        self.physics_curve = curve(self.overview, 'EKF vật lý', '#50d4ed', 2)
+        trend, trend_layout = panel(
+            "XU HƯỚNG GÓC QUAY", trailing=text_label("15 giây gần nhất", "muted")
+        )
+        self.overview = make_plot("Góc", "°")
+        self.raw_curve = curve(self.overview, "Thị giác trực tiếp", "#f0bf65", 1.3)
+        self.temporal_curve = curve(
+            self.overview, "EKF thời gian", "#438fff", 1.5, True
+        )
+        self.physics_curve = curve(self.overview, "EKF vật lý", "#50d4ed", 2)
         trend_layout.addWidget(self.overview, 1)
-        status, status_layout = panel('TRẠNG THÁI PHIÊN')
-        self.status_table = table(['Thành phần', 'Quan sát hiện tại'])
+        status, status_layout = panel("TRẠNG THÁI PHIÊN")
+        self.status_table = table(["Thành phần", "Quan sát hiện tại"])
         self.status_table.horizontalHeader().hide()
         self.status_table.setRowCount(3)
         self.status_table.verticalHeader().setDefaultSectionSize(25)
-        for row, title in enumerate(['Điểm quan sát', 'Phép đo bộ lọc', 'Khung đã nhận']):
+        for row, title in enumerate(
+            ["Điểm quan sát", "Phép đo bộ lọc", "Khung đã nhận"]
+        ):
             self.status_table.setItem(row, 0, QTableWidgetItem(title))
-            self.status_table.setItem(row, 1, QTableWidgetItem('—'))
+            self.status_table.setItem(row, 1, QTableWidgetItem("—"))
         status_layout.addWidget(self.status_table)
         bottom.addWidget(trend, 2)
         bottom.addWidget(status, 1)
         layout.addWidget(bottom_widget)
-        self.confidence_label = text_label('Chưa có ước lượng để đánh giá độ tin cậy.', 'muted', True)
+        self.confidence_label = text_label(
+            "Chưa có ước lượng để đánh giá độ tin cậy.", "muted", True
+        )
         layout.addWidget(self.confidence_label)
 
     def prepare(self, mode):
@@ -165,37 +242,50 @@ class MonitoringPage(QWidget):
         self.twin.clear()
         self.kpis.clear()
         self.source_badge.setText(SOURCE_LABELS[mode])
-        set_tone(self.source_badge, 'warning' if mode == 'simulation' else 'data')
+        set_tone(self.source_badge, "warning" if mode == "simulation" else "data")
         self.banner.setText(SOURCE_NOTICES[mode])
-        self.tracking_badge.setText('ĐANG KẾT NỐI' if mode == 'camera' else 'ĐANG KHỞI ĐỘNG')
-        set_tone(self.tracking_badge, 'warning')
-        self.camera_meta.setText('Đang chờ khung đầu tiên')
-        self.confidence_label.setText('Chưa nhận được dữ liệu. Chưa hiển thị giá trị ước lượng.')
+        self.tracking_badge.setText(
+            "ĐANG KẾT NỐI" if mode == "camera" else "ĐANG KHỞI ĐỘNG"
+        )
+        set_tone(self.tracking_badge, "warning")
+        self.camera_meta.setText("Đang chờ khung đầu tiên")
+        self.confidence_label.setText(
+            "Chưa nhận được dữ liệu. Chưa hiển thị giá trị ước lượng."
+        )
         for row in range(3):
-            self.status_table.item(row, 1).setText('—')
+            self.status_table.item(row, 1).setText("—")
         for item in (self.raw_curve, self.temporal_curve, self.physics_curve):
             item.clear()
 
     def update_state(self, state, frame, twin):
         obs, metrics = state.observation, state.metrics
-        est = metrics['physics']
+        est = metrics["physics"]
         self.camera.set_frame(frame)
         self.twin.set_frame(twin)
         self.kpis.update_metrics(metrics)
         self.tracking_badge.setText(status_text(est.status).upper())
-        set_tone(self.tracking_badge, STATUS_TONES.get(est.status, 'muted'))
-        self.camera_meta.setText(f'Khung {obs.frame_id} · {obs.timestamp:.2f} s')
-        self.confidence_label.setText(STATUS_DETAILS.get(est.status, 'Trạng thái chưa được nhận diện.'))
-        for row, text in enumerate([
-            f'{len(obs.landmarks)} / 3 điểm',
-            f'{est.observation_count} nhận · {est.rejected_count} loại',
-            str(state.sample_count),
-        ]):
+        set_tone(self.tracking_badge, STATUS_TONES.get(est.status, "muted"))
+        self.camera_meta.setText(f"Khung {obs.frame_id} · {obs.timestamp:.2f} s")
+        self.confidence_label.setText(
+            STATUS_DETAILS.get(est.status, "Trạng thái chưa được nhận diện.")
+        )
+        for row, text in enumerate(
+            [
+                f"{len(obs.landmarks)} / 3 điểm",
+                f"{est.observation_count} nhận · {est.rejected_count} loại",
+                str(state.sample_count),
+            ]
+        ):
             self.status_table.item(row, 1).setText(text)
         if state.sample_count % 3 == 0 or state.sample_count == 1:
-            times = np.asarray(state.series['time'])
+            times = np.asarray(state.series["time"])
             times = times - times[0]
-            for item, name in [(self.raw_curve, 'raw_angle'), (self.temporal_curve, 'temporal_angle'),
-                               (self.physics_curve, 'physics_angle')]:
-                item.setData(times, list(state.series[name]), connect='finite')
-            self.overview.setXRange(max(0, times[-1]-15), max(1, times[-1]), padding=.02)
+            for item, name in [
+                (self.raw_curve, "raw_angle"),
+                (self.temporal_curve, "temporal_angle"),
+                (self.physics_curve, "physics_angle"),
+            ]:
+                item.setData(times, list(state.series[name]), connect="finite")
+            self.overview.setXRange(
+                max(0, times[-1] - 15), max(1, times[-1]), padding=0.02
+            )
