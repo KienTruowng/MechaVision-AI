@@ -51,7 +51,8 @@ Các module chính:
 - `detection.py`, `acquisition.py`: nhận diện và thu nhận camera/video.
 - `dataset.py`, `train.py`: trích ảnh, gán nhãn, chia theo phiên, huấn luyện và đánh giá điểm đặc trưng.
 - `evaluation.py`, `real_ablation.py`, `real_evaluation.py`, `replay.py`: đánh giá mô phỏng và đối chiếu dữ liệu đã ghi với tham chiếu độc lập.
-- `gui.py`, `processing.py`, `render.py`, `i18n.py`: giao diện Qt, luồng xử lý, hiển thị và nhãn tiếng Việt.
+- `gui.py`, `dashboard_*.py`, `qt_support.py`: Dashboard V2, các trang, design system, trạng thái và controller nền.
+- `processing.py`, `render.py`, `i18n.py`: luồng xử lý, hiển thị kết quả và nhãn tiếng Việt.
 - `session.py`, `tests/`: nhật ký CSV và kiểm thử tự động.
 
 Xem [kiến trúc chi tiết](docs/ARCHITECTURE.md) và [bảng thuật ngữ, khóa dữ liệu](docs/TERMINOLOGY.md).
@@ -79,13 +80,26 @@ Có thể chạy `install_windows.bat` để cài đặt, sau đó nhấp đúp 
 
 Nhóm `train` có thể cài PyTorch chỉ dùng CPU. Nếu dùng NVIDIA RTX 3050 Ti 4 GB, xem [hướng dẫn cài đặt PyTorch chính thức](https://pytorch.org/get-started/locally/) để chọn bản tương thích CUDA. Có thể bắt đầu với YOLO-nano, ảnh 640, `batch` bằng **4**, giảm xuống **2** nếu thiếu bộ nhớ GPU; đây là cấu hình khởi đầu, không phải kết quả đo hiệu năng. Dùng `--device cpu` khi chạy bằng CPU.
 
-## 4. Chạy mô phỏng và sử dụng bảng điều khiển
+## 4. Dashboard V2 và chạy mô phỏng
 
 ```powershell
 .venv\Scripts\python.exe -m mechavision gui
 ```
 
-Chọn **Nguồn → Mô phỏng**, sau đó **Bắt đầu phân tích**. Giao diện gồm ảnh quan sát, mô hình động học số, góc, tốc độ vòng/phút, độ bất định của góc, sai lệch vị trí theo mô hình và biểu đồ thời gian. Phiên được lưu vào `outputs/session_*.csv`.
+Trong **Cài đặt**, chọn **Loại nguồn → Mô phỏng** (mặc định), rồi nhấn **Bắt đầu phiên**. Thanh điều hướng chia không gian làm việc thành bốn trang:
+
+| Trang | Chức năng |
+|---|---|
+| Giám sát | Hai viewport camera/mô hình động học số, KPI, xu hướng góc và bảng trạng thái phiên |
+| Phân tích | Góc quay của ba phương pháp; vận tốc và độ bất định của hai EKF; sai lệch động học; chọn cửa sổ thời gian và xuất biểu đồ |
+| Thực nghiệm | Chạy đánh giá mô phỏng hoặc đối chiếu CSV với tham chiếu độc lập; bảng MAE/RMSE/P95/bao phủ và nhật ký phiên |
+| Cài đặt | Camera/video, dấu màu/ArUco/YOLO, hình học, trọng số, thiết bị suy luận và thư mục nhật ký |
+
+Camera và Digital Twin dùng cùng mẫu xử lý; mô hình số chỉ vẽ từ trạng thái `TRACKING` hoặc `PREDICTED`. Khi mất dấu, không tạo chuyển động giả. Các phép đo thiếu tạo khoảng trống trên biểu đồ. Cấu hình được khóa trong khi thu nhận và áp dụng ở phiên tiếp theo; có thể chuyển trang khi phiên đang chạy. Nhấn **Dừng** trước khi đổi nguồn. CSV được lưu ở `outputs/session_*.csv` theo mặc định.
+
+Xem [hướng dẫn Dashboard V2 và ảnh kiểm chứng](docs/DASHBOARD_V2.md). Không bổ sung phụ thuộc nặng cho lần nâng cấp giao diện này.
+
+![Dashboard V2 — Giám sát với dữ liệu mô phỏng](assets/dashboard-v2/monitoring-1366x768.png)
 
 Nguồn dữ liệu và chất lượng theo dõi là hai thông tin riêng:
 
@@ -127,7 +141,7 @@ Hai phương pháp dùng dấu chuẩn hoạt động trước khi huấn luyệ
 
 Hiệu chuẩn bằng bốn lần nhấp: **(1)** tâm quay `O`, **(2)** chốt khuỷu `C`, **(3)** khớp pít-tông–thanh truyền thực `S`, **(4)** điểm xác định chiều dương trục trượt. Nhấn **Enter** để lưu, **R** để đặt lại, **Esc** để hủy. Camera cần cố định, gần vuông góc với mặt phẳng chuyển động. Bộ hiệu chuẩn từ chối hình học không phù hợp với cơ cấu tay quay–con trượt cứng.
 
-Trong bảng điều khiển, chọn **Camera trực tiếp** hoặc **Video đã ghi**, nhập nguồn, chọn tệp `configs/geometry.json` đã hiệu chuẩn và bộ nhận diện tương ứng. `configs/geometry.example.json` chỉ là cấu hình ví dụ, không phải hiệu chuẩn cơ cấu thực. Tùy chọn YOLO Pose cần tệp trọng số đã huấn luyện.
+Trong trang **Cài đặt**, chọn **Camera trực tiếp** hoặc **Video đã ghi**, nhập nguồn, chọn tệp `configs/geometry.json` đã hiệu chuẩn và bộ nhận diện tương ứng. `configs/geometry.example.json` chỉ là cấu hình ví dụ, không phải hiệu chuẩn cơ cấu thực. Tùy chọn YOLO Pose cần tệp trọng số đã huấn luyện.
 
 Cơ cấu khác mô hình hoặc khớp pít-tông không nhìn thấy không thể được xem là đã hỗ trợ đo chính xác nếu chưa thay đổi và kiểm chứng mô hình vật lý.
 
