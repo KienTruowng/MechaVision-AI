@@ -219,13 +219,13 @@ Các kiểm thử phát lại dùng dữ liệu tổng hợp ở định dạng 
 5. Độ chính xác tuyệt đối, độ trễ, FPS, độ bền vững và hiệu năng RTX 3050 Ti cần đo trên thiết bị đích với thí nghiệm được kiểm soát. Dừng/đảo chiều khi quay tay là chuyển động bình thường, không phải dấu hiệu hỏng máy.
 6. Đây là nguyên mẫu nghiên cứu có thể chạy, chưa phải sản phẩm giám sát công nghiệp được chứng nhận hoặc hệ thống chẩn đoán lỗi cơ khí.
 
-## 10. Phát triển và đóng góp
+## 10. Kiểm thử và chất lượng mã nguồn
 
 ```powershell
 .venv\Scripts\python.exe -m pytest -q
 .venv\Scripts\python.exe -m compileall -q src
 ```
 
-Ưu tiên tạo nhánh riêng, commit rõ nội dung và mở Pull Request vào `main`. Không đưa dữ liệu, mô hình, cấu hình cục bộ, bí mật hoặc kết quả sinh ra lên Git nếu không có chủ đích; xem `.gitignore`. [Hướng dẫn GitHub](PUSH_TO_GITHUB_VI.md) mô tả thao tác với repository hiện có và công cụ xuất bản ban đầu `tools/publish_github.ps1` (mặc định tạo kho riêng tư).
+Các tệp dữ liệu, trọng số và kết quả sinh tự động được tách khỏi mã nguồn; xem `.gitignore`. Phạm vi kiểm chứng và các giới hạn chưa được xác minh được ghi trong [biên bản kiểm chứng](docs/VALIDATION.md).
 
 Giấy phép mã nguồn: **MIT**; giữ nguyên văn bản pháp lý trong `LICENSE`. Kiểm tra riêng giấy phép của thư viện và trọng số mô hình.

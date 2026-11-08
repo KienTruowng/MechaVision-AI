@@ -34,7 +34,3 @@ Kết quả ở `outputs/evaluation/summary.json` và `ablation.csv`, chỉ đo 
 4. Nếu gắn dấu chuẩn chính xác lên tâm khớp, dùng ArUco hoặc dấu đỏ/xanh lá/xanh dương để tạo đối chứng trước khi huấn luyện AI.
 5. Thực hiện `extract`, `annotate --folder`, `split`, `train`, `validate` theo README. Đường `annotate --video` có phím điều khiển khác và cần tự tổ chức các tập theo phiên.
 6. Chọn **Camera trực tiếp** hoặc **Video đã ghi** trong giao diện, cung cấp đúng tệp hiệu chuẩn và trọng số nếu dùng YOLO Pose. Thu góc tham chiếu độc lập để đánh giá.
-
-## Làm việc với GitHub
-
-Repository hiện có: [KienTruowng/MechaVision-AI](https://github.com/KienTruowng/MechaVision-AI). Xem [hướng dẫn GitHub](PUSH_TO_GITHUB_VI.md) để tải mã và tạo nhánh/Pull Request. Không cần khởi tạo lại Git cho bản đã được clone.
