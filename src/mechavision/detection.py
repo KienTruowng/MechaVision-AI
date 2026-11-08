@@ -68,6 +68,11 @@ class YOLOPoseDetector:
 
 def draw_observations(frame,obs:Observation):
     colors={"pivot":(230,230,230),"crank":(70,174,251),"piston":(81,230,164)}
+    # Chỉ nối các điểm thực sự được nhận diện; không suy diễn điểm bị che.
+    for first,second in (("pivot","crank"),("crank","piston")):
+        if first in obs.landmarks and second in obs.landmarks:
+            a,b=obs.landmarks[first],obs.landmarks[second]
+            cv2.line(frame,(round(a.x),round(a.y)),(round(b.x),round(b.y)),(218,180,74),2,cv2.LINE_AA)
     for name,p in obs.landmarks.items():
         q=(round(p.x),round(p.y))
         cv2.circle(frame,q,7,colors.get(name,(255,255,255)),2,cv2.LINE_AA)

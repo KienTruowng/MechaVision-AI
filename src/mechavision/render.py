@@ -18,12 +18,17 @@ def draw_estimate(frame,estimate:Estimate):
 
 def twin_frame(geo,est,width=620,height=390):
     import numpy as np
-    img=np.full((height,width,3),(21,28,42),dtype=np.uint8)
-    put_text(img,'MÔ HÌNH ĐỘNG HỌC SỐ / ƯỚC LƯỢNG',(22,32),
-                cv2.FONT_HERSHEY_SIMPLEX,.56,(215,219,229),1,cv2.LINE_AA)
+    img=np.full((height,width,3),(31,19,7),dtype=np.uint8)
+    for x in range(20,width,40):cv2.line(img,(x,65),(x,height-50),(44,31,17),1)
+    for y in range(65,height-40,40):cv2.line(img,(20,y),(width-20,y),(44,31,17),1)
+    put_text(img,f'r = {geo.radius_px:.1f} px   l = {geo.rod_px:.1f} px   e = {geo.slider_offset_px:.1f} px',
+             (22,28),cv2.FONT_HERSHEY_SIMPLEX,.48,(181,158,128),1,cv2.LINE_AA)
+    label='Chưa có trạng thái' if est is None else status_text(est.status)
+    color=(177,213,72) if est is not None and est.status=='TRACKING' else (106,195,240)
+    put_text(img,label,(22,52),cv2.FONT_HERSHEY_SIMPLEX,.53,color,1,cv2.LINE_AA)
     if est is None or est.theta is None:
         put_text(img,'KHÔNG ĐỦ ĐỘ TIN CẬY ĐỂ ƯỚC LƯỢNG',(60,height//2),
-                    cv2.FONT_HERSHEY_SIMPLEX,.65,(80,155,233),2,cv2.LINE_AA)
+                    cv2.FONT_HERSHEY_SIMPLEX,.58,(124,140,163),1,cv2.LINE_AA)
         return img
     scale=min((width-110)/(2*(geo.rod_px+geo.radius_px)),(height-110)/(3*geo.radius_px))
     pivot=np.array([max(95,width*.26),height*.53],dtype=float)
@@ -31,14 +36,22 @@ def twin_frame(geo,est,width=620,height=390):
     r=geo.radius_px
     O=xy((0,0));C=xy((r*np.cos(est.theta),r*np.sin(est.theta)))
     P=xy((geo.slider_x(est.theta),geo.slider_offset_px))
-    cv2.line(img,(25,O[1]),(width-20,O[1]),(55,73,93),2)
-    cv2.circle(img,O,int(r*scale),(65,76,91),1,cv2.LINE_AA)
-    cv2.line(img,O,C,(226,167,88),9,cv2.LINE_AA)
-    cv2.line(img,C,P,(82,199,205),8,cv2.LINE_AA)
-    cv2.rectangle(img,(P[0]-15,P[1]-23),(P[0]+15,P[1]+23),(70,136,215),-1)
-    for pt in (O,C,P):cv2.circle(img,pt,6,(235,238,244),-1,cv2.LINE_AA)
-    put_text(img,'HIỂN THỊ THEO MÔ HÌNH — KHÔNG PHẢI CẢM BIẾN',(18,height-20),
-                cv2.FONT_HERSHEY_SIMPLEX,.45,(149,166,182),1,cv2.LINE_AA)
+    cv2.arrowedLine(img,(30,O[1]),(width-26,O[1]),(91,66,41),1,tipLength=.025)
+    cv2.arrowedLine(img,(O[0],height-65),(O[0],80),(91,66,41),1,tipLength=.04)
+    for offset in (-25,25):cv2.line(img,(max(30,P[0]-80),P[1]+offset),(width-35,P[1]+offset),(97,76,49),2)
+    cv2.circle(img,O,int(r*scale),(95,65,37),1,cv2.LINE_AA)
+    cv2.line(img,O,C,(255,143,67),8,cv2.LINE_AA)
+    cv2.line(img,C,P,(237,212,80),7,cv2.LINE_AA)
+    cv2.rectangle(img,(P[0]-17,P[1]-21),(P[0]+17,P[1]+21),(104,73,34),-1)
+    cv2.rectangle(img,(P[0]-17,P[1]-21),(P[0]+17,P[1]+21),(237,212,80),2)
+    for name,pt in (('O',O),('C',C),('S',P)):
+        cv2.circle(img,pt,7,(35,20,8),-1,cv2.LINE_AA)
+        cv2.circle(img,pt,7,(237,219,191),2,cv2.LINE_AA)
+        put_text(img,name,(pt[0]+11,pt[1]-13),cv2.FONT_HERSHEY_SIMPLEX,.47,(220,203,179),1)
+    put_text(img,'x',(width-22,O[1]-8),cv2.FONT_HERSHEY_SIMPLEX,.45,(161,130,94),1)
+    put_text(img,'y',(O[0]+9,82),cv2.FONT_HERSHEY_SIMPLEX,.45,(161,130,94),1)
+    put_text(img,f'Góc ước lượng: {math.degrees(est.theta):.1f}°',(22,height-23),
+             cv2.FONT_HERSHEY_SIMPLEX,.51,(214,190,160),1,cv2.LINE_AA)
     return img
 
 
