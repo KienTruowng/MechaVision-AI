@@ -1,6 +1,6 @@
 # MechaVision AI
 
-**Bản bàn giao Dashboard V3:** [trạng thái và giới hạn kiểm chứng](docs/PROJECT_STATUS.md) · [tiếp tục trong phiên Codex mới / khôi phục bundle](docs/HANDOFF.md) · [lộ trình](docs/ROADMAP.md).
+**Bản bàn giao Dashboard V4:** [trạng thái và giới hạn kiểm chứng](docs/PROJECT_STATUS.md) · [tiếp tục trong phiên Codex mới / khôi phục bundle](docs/HANDOFF.md) · [lộ trình](docs/ROADMAP.md).
 
 **Ước lượng trạng thái bằng thị giác theo thời gian thực cho cơ cấu tay quay–con trượt có ràng buộc vật lý**
 
@@ -82,7 +82,7 @@ Có thể chạy `install_windows.bat` để cài đặt, sau đó nhấp đúp 
 
 Nhóm `train` có thể cài PyTorch chỉ dùng CPU. Nếu dùng NVIDIA RTX 3050 Ti 4 GB, xem [hướng dẫn cài đặt PyTorch chính thức](https://pytorch.org/get-started/locally/) để chọn bản tương thích CUDA. Có thể bắt đầu với YOLO-nano, ảnh 640, `batch` bằng **4**, giảm xuống **2** nếu thiếu bộ nhớ GPU; đây là cấu hình khởi đầu, không phải kết quả đo hiệu năng. Dùng `--device cpu` khi chạy bằng CPU.
 
-## 4. Dashboard V3 và chạy mô phỏng
+## 4. Dashboard V4 và chạy mô phỏng
 
 ```powershell
 .venv\Scripts\python.exe -m mechavision gui
@@ -101,7 +101,7 @@ Camera và Digital Twin dùng cùng mẫu xử lý; mô hình số chỉ vẽ t�
 
 Xem [hướng dẫn Dashboard V2](docs/DASHBOARD_V2.md) và [cải tiến thị giác V2.1, ảnh trước/sau và biên bản QA](docs/DASHBOARD_V2_1.md). V2.1 bổ sung cận cảnh theo hiệu chuẩn, bản vẽ cơ khí thích ứng viewport và KPI dễ đọc hơn, giữ nguyên bốn trang và pipeline xử lý.
 
-![Dashboard V3 — Giám sát với dữ liệu mô phỏng](assets/dashboard-v3/exact/monitoring-1366x768.png)
+![Dashboard V4 — Giám sát với dữ liệu mô phỏng](assets/dashboard-v4/exact/monitoring-1366x768.png)
 
 Nguồn dữ liệu và chất lượng theo dõi là hai thông tin riêng:
 

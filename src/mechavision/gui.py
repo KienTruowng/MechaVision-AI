@@ -4,7 +4,13 @@ from datetime import datetime
 from pathlib import Path
 from PySide6.QtCore import Qt, QLocale
 from PySide6.QtGui import QFont, QFontDatabase
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QFileDialog,
+    QMessageBox,
+    QFrame,
+)
 from .dashboard_theme import STYLE, apply_application_theme
 from .dashboard_shell import DashboardShell
 from .dashboard_state import DashboardState
@@ -36,7 +42,7 @@ class MainWindow(QMainWindow):
             app._mechavision_translator = _VietnameseQtTranslator(app)
             app.installTranslator(app._mechavision_translator)
         QLocale.setDefault(QLocale("vi_VN"))
-        self.setWindowTitle("MechaVision AI — Nền tảng nghiên cứu V3")
+        self.setWindowTitle("MechaVision AI — Ultimate Premium V4")
         self.setMinimumSize(1180, 680)
         available = self.screen().availableGeometry()
         self.resize(
@@ -45,6 +51,7 @@ class MainWindow(QMainWindow):
         )
         self.setStyleSheet(STYLE)
         self.worker = None
+        self._raw_frame = None
         self.state = DashboardState()
         self._session_row = None
         self._build()
@@ -53,6 +60,9 @@ class MainWindow(QMainWindow):
         self.shell = DashboardShell()
         self.setCentralWidget(self.shell)
         self.monitor = MonitoringPage()
+        header = self.shell.findChild(QFrame, "station_header")
+        header.layout().insertWidget(3, self.monitor.tracking_badge)
+        self.monitor.tracking_badge.show()
         self.analysis = AnalyticsPage()
         self.settings = SettingsPage(self._browse)
         self.experiments = ExperimentsPage(
@@ -109,7 +119,18 @@ class MainWindow(QMainWindow):
         )
         self.source_mode.currentIndexChanged.connect(self._update_source_badge)
         self._update_source_badge()
+        self.settings.visualization_changed.connect(self._visualization_preference)
+        self.monitor.annotation_button.toggled.connect(
+            self.settings.annotation_check.setChecked
+        )
+        self.monitor.focus_button.toggled.connect(self.settings.focus_check.setChecked)
         self.navigate(0)
+
+    def _visualization_preference(self, name, enabled):
+        if name == "annotations":
+            self.monitor.annotation_button.setChecked(enabled)
+        elif name == "focus":
+            self.monitor.focus_button.setChecked(enabled)
 
     def navigate(self, index):
         self.shell.select_page(index)
@@ -194,7 +215,10 @@ class MainWindow(QMainWindow):
         )
         self.state.reset(mode, filename)
         self.state.phase = "connecting"
-        self.monitor.set_geometry(Geometry() if mode == "simulation" else selected_geometry)
+        self.monitor.set_geometry(
+            Geometry() if mode == "simulation" else selected_geometry
+        )
+        self._raw_frame = None
         self.monitor.prepare(mode)
         self.shell.update_session(self.state)
         self.analysis.clear()
@@ -212,6 +236,11 @@ class MainWindow(QMainWindow):
             self.settings.device.text().strip() or "cpu",
         )
         worker = self.worker
+        worker.raw_frame.connect(
+            lambda frame: (
+                setattr(self, "_raw_frame", frame) if self.worker is worker else None
+            )
+        )
         worker.sample.connect(
             lambda frame, twin, data: (
                 self._on_sample(frame, twin, data) if self.worker is worker else None
@@ -247,16 +276,18 @@ class MainWindow(QMainWindow):
             self.shell.system_badge.setText("ĐANG PHÂN TÍCH")
             set_tone(self.shell.system_badge, "valid")
         self.state.append(data["observation"], data["metrics"])
+        self.analysis.record_observation(self.state)
         self.shell.update_session(self.state)
         if self._session_row is not None:
             self.experiments.update_session(self._session_row, self.state.sample_count)
-        self.monitor.update_state(self.state, frame, twin)
+        self.monitor.update_state(self.state, frame, twin, self._raw_frame)
         if self.shell.stack.currentIndex() == 1 and (
             self.state.sample_count % 3 == 0 or self.state.sample_count == 1
         ):
             self.analysis.update_state(self.state)
 
     def _on_error(self, message):
+        self.monitor.add_event("Lỗi nguồn · " + message)
         self.state.error = message
         self.state.phase = "error"
         self.banner.setText(
@@ -270,6 +301,9 @@ class MainWindow(QMainWindow):
         self._notify("Lỗi MechaVision", "Không thể hoàn tất phiên xử lý.\n" + message)
 
     def _on_end(self):
+        self.monitor.add_event(
+            "Kết thúc phiên · " + str(self.state.sample_count) + " khung"
+        )
         self.state.phase = "error" if self.state.error else "stopped"
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)

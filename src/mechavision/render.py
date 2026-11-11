@@ -55,81 +55,10 @@ def draw_estimate(frame,estimate:Estimate):
     return frame
 
 
-def twin_frame(geo,est,width=620,height=390):
-    """Bản vẽ cơ khí theo ước lượng; phép biến đổi hiển thị luôn đồng tỷ lệ."""
-    import numpy as np
-    img=np.full((height,width,3),(31,19,7),dtype=np.uint8)
-    compact=height<270
-    top=34 if compact else 64
-    bottom=height-30
-    for x in range(24,width,48):
-        cv2.line(img,(x,top),(x,bottom),(43,30,17),1)
-    for y in range(top,bottom,48):
-        cv2.line(img,(24,y),(width-24,y),(43,30,17),1)
-    put_text(img,f'r {geo.radius_px:.0f} px   /   l {geo.rod_px:.0f} px   /   e {geo.slider_offset_px:.0f} px',
-             (18,21),fontScale=.45 if compact else .52,color=(196,176,150))
-    label='Chưa có trạng thái' if est is None else status_text(est.status)
-    color={'TRACKING':(177,213,72),'PREDICTED':(106,195,240),'LOST':(135,123,255)}.get(
-        est.status if est is not None else 'UNINITIALIZED',(161,137,112))
-    put_text(img,label,(max(18,width-145),21) if compact else (18,46),
-             fontScale=.45 if compact else .54,color=color)
-    if est is None or est.theta is None or est.status not in ('TRACKING','PREDICTED'):
-        put_text(img,'Không đủ độ tin cậy để dựng cơ cấu',(24,height//2+10),
-                 fontScale=.62,color=(163,140,124))
-        return img
-    # Miền toàn vòng cố định: không phóng to/thu nhỏ theo góc hoặc thời gian.
-    r=geo.radius_px
-    ymin=min(-r,geo.slider_offset_px)
-    ymax=max(r,geo.slider_offset_px)
-    xmin=-r
-    xmax=geo.rod_px+r
-    scale=min((width-96)/(xmax-xmin),(bottom-top-44)/(ymax-ymin))
-    scale=max(.01,scale)
-    center=np.array([width/2,(top+bottom)/2],dtype=float)
-    midpoint=np.array([(xmin+xmax)/2,(ymin+ymax)/2])
-    def xy(pos):
-        delta=(np.array(pos)-midpoint)*scale
-        return tuple(np.rint(center+delta*np.array([1,-1])).astype(int))
-    O=xy((0,0));C=xy((r*np.cos(est.theta),r*np.sin(est.theta)))
-    P=xy((geo.slider_x(est.theta),geo.slider_offset_px))
-    axis=(93,69,43); blue=(255,143,67); cyan=(237,212,80)
-    cv2.arrowedLine(img,(22,O[1]),(width-22,O[1]),axis,1,tipLength=.02)
-    cv2.arrowedLine(img,(O[0],bottom),(O[0],top),axis,1,tipLength=.04)
-    cv2.circle(img,O,max(1,round(r*scale)),(87,62,35),1,cv2.LINE_AA)
-    # Ray dẫn hướng giữ nguyên trục lệch tâm của mô hình.
-    rail_start=max(24,xy((geo.rod_px-r,geo.slider_offset_px))[0]-30)
-    for offset in (-22,22):
-        cv2.line(img,(rail_start,P[1]+offset),(width-24,P[1]+offset),(129,100,65),3,cv2.LINE_AA)
-        cv2.line(img,(rail_start,P[1]+offset+4),(width-24,P[1]+offset+4),(59,44,27),1)
-    # Bệ ổ trục, vành đỡ và hai thanh có biên rõ trên nền graphite.
-    cv2.rectangle(img,(O[0]-18,O[1]+16),(O[0]+18,O[1]+23),(105,82,53),-1)
-    cv2.circle(img,O,19,(102,78,48),2,cv2.LINE_AA)
-    cv2.circle(img,O,14,(54,38,22),-1,cv2.LINE_AA)
-    for a,b,color,thickness in ((O,C,blue,13),(C,P,cyan,11)):
-        # Bóng đổ và biên kim loại chỉ tạo chiều sâu bản vẽ, không đổi tâm khớp.
-        shadow_a=(a[0]+3,a[1]+5);shadow_b=(b[0]+3,b[1]+5)
-        cv2.line(img,shadow_a,shadow_b,(15,10,5),thickness+9,cv2.LINE_AA)
-        cv2.line(img,a,b,(55,37,18),thickness+6,cv2.LINE_AA)
-        cv2.line(img,a,b,color,thickness,cv2.LINE_AA)
-        cv2.line(img,a,b,(136,115,88),max(3,thickness-6),cv2.LINE_AA)
-        cv2.line(img,(a[0],a[1]-2),(b[0],b[1]-2),(238,225,199),1,cv2.LINE_AA)
-    cv2.rectangle(img,(P[0]-22,P[1]-18),(P[0]+22,P[1]+18),(97,71,36),-1)
-    cv2.rectangle(img,(P[0]-22,P[1]-18),(P[0]+22,P[1]+18),cyan,2)
-    cv2.rectangle(img,(P[0]-20,P[1]-16),(P[0]+20,P[1]-9),(182,158,113),-1)
-    for dx in (-15,15):
-        cv2.line(img,(P[0]+dx,P[1]-14),(P[0]+dx,P[1]+14),(168,138,83),2)
-    for name,pt in (('O',O),('C',C),('S',P)):
-        cv2.circle(img,pt,10,(52,34,17),-1,cv2.LINE_AA)
-        cv2.circle(img,pt,7,(35,20,8),-1,cv2.LINE_AA)
-        cv2.circle(img,pt,7,(237,219,191),2,cv2.LINE_AA)
-        cv2.circle(img,pt,2,(220,207,183),-1,cv2.LINE_AA)
-        put_text(img,name,(pt[0]+12,pt[1]-23),fontScale=.52,color=(231,215,190))
-    put_text(img,'x',(width-22,O[1]-8),fontScale=.45,color=(161,130,94))
-    put_text(img,'y',(O[0]+8,top+4),fontScale=.45,color=(161,130,94))
-    cv2.line(img,(18,height-33),(width-18,height-33),(66,47,28),1)
-    put_text(img,f'θ = {math.degrees(est.theta):.1f}°   ·   Cùng trạng thái ước lượng',
-             (18,height-12),fontScale=.52,color=(221,205,180))
-    return img
+def twin_frame(geo, est, width=620, height=390):
+    from .twin_renderer import render_twin
+
+    return render_twin(geo, est, width, height)
 
 
 def decorate_video(frame,status,fps):

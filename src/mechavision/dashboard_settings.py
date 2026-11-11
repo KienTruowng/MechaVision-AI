@@ -1,6 +1,8 @@
-"""Cấu hình nguồn và mô hình, tách khỏi không gian giám sát."""
+"""Cấu hình theo nhóm; điều khiển thật và giới hạn hỗ trợ được ghi rõ."""
 
 from pathlib import Path
+from inspect import signature
+from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -10,12 +12,19 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFormLayout,
     QScrollArea,
+    QTabWidget,
+    QCheckBox,
+    QButtonGroup,
+    QFrame,
 )
 from .dashboard_widgets import panel, text_label, badge, set_tone
 from .geometry import Geometry
+from .estimators import MotionEKF
 
 
 class SettingsPage(QScrollArea):
+    visualization_changed = Signal(str, bool)
+
     def __init__(self, browse):
         super().__init__()
         self.setWidgetResizable(True)
@@ -29,21 +38,82 @@ class SettingsPage(QScrollArea):
         layout = QVBoxLayout(body)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
+        heading = QHBoxLayout()
+        heading.addWidget(text_label("CẤU HÌNH HỆ THỐNG", "panel_title"))
+        heading.addStretch()
+        heading.addWidget(badge("ÁP DỤNG CHO PHIÊN MỚI", "data"))
+        layout.addLayout(heading)
         layout.addWidget(
             text_label(
-                "Cấu hình được áp dụng khi bắt đầu phiên mới. Các trường nguồn được khóa trong khi đang thu nhận.",
+                "Nguồn và mô hình được khóa khi đang thu nhận. Tùy chọn hiển thị áp dụng ngay, không tác động phép đo.",
                 "muted",
                 True,
             )
         )
-        columns = QHBoxLayout()
-        columns.setSpacing(12)
+        self.tabs = QTabWidget()
+        self.tabs.setObjectName("research_tabs")
+        self.tabs.tabBar().hide()
+        workspace = QHBoxLayout()
+        workspace.setSpacing(16)
+        rail = QFrame()
+        rail.setFixedWidth(200)
+        rail.setObjectName("panel")
+        navigation = QVBoxLayout(rail)
+        navigation.setContentsMargins(12, 16, 12, 16)
+        navigation.addWidget(text_label("NHÓM CẤU HÌNH", "eyebrow"))
+        self.group_buttons = []
+        self.group_nav = QButtonGroup(self)
+        for index, (title, hint) in enumerate(
+            [
+                ("Nguồn và nhận diện", "Camera · Video · YOLO"),
+                ("Hình học và EKF", "Hiệu chuẩn · Bộ lọc"),
+                ("Hiển thị và lưu trữ", "Vùng nhìn · Nhật ký CSV"),
+            ]
+        ):
+            button = QPushButton(title)
+            button.setObjectName("nav")
+            button.setCheckable(True)
+            button.setToolTip(hint)
+            navigation.addWidget(button)
+            description = text_label(hint, "micro", True)
+            navigation.addWidget(description)
+            navigation.addSpacing(12)
+            self.group_nav.addButton(button, index)
+            self.group_buttons.append(button)
+        navigation.addStretch()
+        navigation.addWidget(
+            text_label(
+                "Thông số nguồn áp dụng cho phiên kế tiếp. Dừng phiên để thay đổi.",
+                "muted",
+                True,
+            )
+        )
+        self.group_nav.idClicked.connect(self.tabs.setCurrentIndex)
+        self.tabs.currentChanged.connect(
+            lambda index: self.group_buttons[index].setChecked(True)
+        )
+        self.group_buttons[0].setChecked(True)
+        workspace.addWidget(rail)
+        workspace.addWidget(self.tabs, 1)
+        layout.addLayout(workspace, 1)
+        summary, summary_layout = panel("Cấu hình cho phiên kế tiếp")
+        self.config_summary = text_label("", "muted", True)
+        self.config_summary.setStyleSheet("font-size:13px; color:#CAD8E8;")
+        summary_layout.addWidget(self.config_summary)
+        self.activation_note = text_label("", "muted", True)
+        summary_layout.addWidget(self.activation_note)
+        layout.addWidget(summary)
+
+        acquisition = QWidget()
+        columns = QHBoxLayout(acquisition)
+        columns.setContentsMargins(0, 0, 0, 0)
+        columns.setAlignment(Qt.AlignTop)
+        columns.setSpacing(16)
         self.source_card, source_layout = panel(
-            "NGUỒN DỮ LIỆU",
-            "Chọn rõ dữ liệu mô phỏng, camera trực tiếp hoặc tệp video.",
+            "01 / NGUỒN THU NHẬN", "Chọn nguồn của phiên đo và đường dẫn thu nhận."
         )
         source_form = QFormLayout()
-        source_form.setSpacing(12)
+        source_form.setSpacing(14)
         source_form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         self.source_mode = QComboBox()
         for title, value in [
@@ -62,6 +132,26 @@ class SettingsPage(QScrollArea):
             )
         )
         source_form.addRow("", self.video_button)
+        source_layout.addLayout(source_form)
+        self.source_hint = text_label("", "muted", True)
+        source_layout.addWidget(self.source_hint)
+        source_layout.addSpacing(16)
+        source_layout.addWidget(text_label("MÔ PHỎNG / VIDEO / CAMERA", "eyebrow"))
+        source_layout.addWidget(
+            text_label(
+                "Nhãn nguồn luôn được giữ riêng với trạng thái theo dõi. Một tệp video không tự chứng minh kết quả thực nghiệm vật lý.",
+                "muted",
+                True,
+            )
+        )
+        columns.addWidget(self.source_card, 1)
+        self.model_card, model_layout = panel(
+            "02 / NHẬN DIỆN & THIẾT BỊ",
+            "Bộ nhận diện dùng đúng ba điểm đặc trưng của cơ cấu.",
+        )
+        model_form = QFormLayout()
+        model_form.setSpacing(14)
+        model_form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         self.detector_mode = QComboBox()
         for title, value in [
             ("Dấu màu", "color"),
@@ -69,30 +159,10 @@ class SettingsPage(QScrollArea):
             ("YOLO Pose", "yolo"),
         ]:
             self.detector_mode.addItem(title, value)
-        source_form.addRow("Bộ nhận diện", self.detector_mode)
-        source_layout.addLayout(source_form)
-        self.source_hint = text_label("", "muted", True)
-        source_layout.addWidget(self.source_hint)
-        source_layout.addStretch()
-        columns.addWidget(self.source_card, 1)
-
-        self.model_card, model_layout = panel(
-            "HÌNH HỌC VÀ NHẬN DIỆN",
-            "Giữ nguyên mô hình tay quay–con trượt và thứ tự ba điểm.",
-        )
-        model_form = QFormLayout()
-        model_form.setSpacing(12)
-        model_form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        self.geom_path = QLineEdit("configs/geometry.example.json")
-        model_form.addRow("Hình học JSON", self.geom_path)
-        self.geometry_button = QPushButton("Chọn cấu hình hình học")
-        self.geometry_button.clicked.connect(
-            lambda: (browse(self.geom_path, "JSON (*.json)"), self.preview_geometry())
-        )
-        model_form.addRow("", self.geometry_button)
+        model_form.addRow("Bộ nhận diện", self.detector_mode)
         self.weights_path = QLineEdit()
-        self.weights_path.setPlaceholderText("Trọng số YOLO Pose đã huấn luyện (.pt)")
-        model_form.addRow("Trọng số YOLO", self.weights_path)
+        self.weights_path.setPlaceholderText("Trọng số YOLO Pose (.pt)")
+        model_form.addRow("Trọng số", self.weights_path)
         self.weights_button = QPushButton("Chọn trọng số")
         self.weights_button.clicked.connect(
             lambda: browse(self.weights_path, "PyTorch (*.pt)")
@@ -100,20 +170,121 @@ class SettingsPage(QScrollArea):
         model_form.addRow("", self.weights_button)
         self.device = QLineEdit("cpu")
         self.device.setToolTip(
-            "Thiết bị YOLO: cpu hoặc chỉ số GPU, ví dụ 0. Không thay đổi tham số bộ lọc."
+            "Thiết bị YOLO: cpu hoặc chỉ số GPU, ví dụ 0. Áp dụng cho phiên mới."
         )
         model_form.addRow("Thiết bị YOLO", self.device)
         model_layout.addLayout(model_form)
-        self.geometry_badge = badge("CẤU HÌNH MẪU", "warning")
-        model_layout.addWidget(self.geometry_badge)
-        self.geometry_summary = text_label("", "muted", True)
-        model_layout.addWidget(self.geometry_summary)
+        model_layout.addWidget(
+            text_label(
+                "Trọng số LEGO riêng chưa được cung cấp. Không hiển thị mức độ chính xác khi chưa có dữ liệu đánh giá độc lập.",
+                "muted",
+                True,
+            )
+        )
+        model_layout.addSpacing(16)
+        model_layout.addWidget(badge("SUY LUẬN CHẠY TRÊN WORKER", "data"))
         columns.addWidget(self.model_card, 1)
-        layout.addLayout(columns)
+        self.tabs.addTab(acquisition, "Nguồn / nhận diện")
 
+        geometry_page = QWidget()
+        geometry_columns = QHBoxLayout(geometry_page)
+        geometry_columns.setContentsMargins(0, 0, 0, 0)
+        geometry_columns.setAlignment(Qt.AlignTop)
+        geometry_columns.setSpacing(16)
+        geometry_card, geometry_layout = panel(
+            "03 / HÌNH HỌC HIỆU CHUẨN",
+            "Đơn vị pixel; giữ đúng vị trí khớp vật lý và mặt phẳng chuyển động.",
+        )
+        self.geom_path = QLineEdit("configs/geometry.example.json")
+        geometry_layout.addWidget(self.geom_path)
+        self.geometry_button = QPushButton("Chọn cấu hình hình học")
+        self.geometry_button.clicked.connect(
+            lambda: (browse(self.geom_path, "JSON (*.json)"), self.preview_geometry())
+        )
+        geometry_layout.addWidget(self.geometry_button)
+        self.geometry_badge = badge("CẤU HÌNH MẪU", "warning")
+        geometry_layout.addWidget(self.geometry_badge)
+        self.geometry_summary = text_label("", "muted", True)
+        geometry_layout.addWidget(self.geometry_summary)
+        geometry_layout.addSpacing(16)
+        geometry_layout.addWidget(text_label("TRƯỚC KHI ĐO CƠ CẤU THỰC", "panel_title"))
+        geometry_layout.addWidget(
+            text_label(
+                "01  Gá camera cố định, gần vuông góc với mặt phẳng cơ cấu.\n02  Chọn tâm quay, chốt khuỷu và khớp thanh truyền–pít-tông.\n03  Đo và xác minh cấu hình trên cơ cấu riêng.",
+                "muted",
+                True,
+            )
+        )
+        geometry_columns.addWidget(geometry_card, 1)
+        ekf_card, ekf_layout = panel(
+            "04 / BỘ ƯỚC LƯỢNG EKF",
+            "Giá trị mặc định được đọc từ bộ lọc hiện có. UI chưa hỗ trợ sửa tham số EKF.",
+        )
+        ekf_layout.addWidget(badge("CHỈ ĐỌC · KHÔNG ĐỔI THUẬT TOÁN", "muted"))
+        defaults = signature(MotionEKF.__init__).parameters
+        ekf_form = QFormLayout()
+        ekf_form.setSpacing(16)
+        self.ekf_defaults = {}
+        for key, title, unit in [
+            ("measurement_sigma_px", "Nhiễu phép đo σ", "px"),
+            ("accel_sigma", "Nhiễu gia tốc σ", "rad/s²"),
+            ("max_prediction_sec", "Thời gian dự báo tối đa", "s"),
+            ("max_sigma_deg", "Độ bất định giới hạn", "°"),
+            ("gate_sigma", "Cổng loại ngoại lai", "σ"),
+        ]:
+            value = defaults[key].default
+            self.ekf_defaults[key] = value
+            ekf_form.addRow(title, text_label(f"{value:g} {unit}", "session_value"))
+        ekf_layout.addLayout(ekf_form)
+        ekf_layout.addSpacing(16)
+        ekf_layout.addWidget(
+            text_label(
+                "Trạng thái nội bộ dùng radian và rad/s. Cả EKF thời gian và EKF vật lý giữ nguyên quy trình cập nhật hiện có.",
+                "muted",
+                True,
+            )
+        )
+        geometry_columns.addWidget(ekf_card, 1)
+        self.tabs.addTab(geometry_page, "Hình học / EKF")
+
+        presentation = QWidget()
+        presentation_layout = QVBoxLayout(presentation)
+        presentation_layout.setContentsMargins(0, 12, 0, 0)
+        row = QHBoxLayout()
+        view_card, view_layout = panel(
+            "05 / HIỂN THỊ",
+            "Tùy chọn chỉ tác động viewport, không thay đổi khung gốc hoặc dữ liệu ghi.",
+        )
+        self.annotation_check = QCheckBox("Hiển thị chú thích và điểm đặc trưng")
+        self.annotation_check.setChecked(True)
+        self.focus_check = QCheckBox("Cận cảnh theo hình học hiệu chuẩn")
+        self.focus_check.setChecked(True)
+        self.annotation_check.toggled.connect(
+            lambda value: self.visualization_changed.emit("annotations", value)
+        )
+        self.focus_check.toggled.connect(
+            lambda value: self.visualization_changed.emit("focus", value)
+        )
+        view_layout.addWidget(self.annotation_check)
+        view_layout.addWidget(self.focus_check)
+        view_layout.addSpacing(16)
+        row.addWidget(view_card, 1)
+        performance, performance_layout = panel(
+            "06 / HIỆU NĂNG", "Thiết bị suy luận được chọn ở nhóm Nguồn / nhận diện."
+        )
+        performance_layout.addWidget(
+            text_label(
+                "Bộ đệm biểu đồ: tối đa 3.600 mẫu\nLuồng thu nhận / ước lượng: worker nền\nGiới hạn FPS / batch inference: chưa hỗ trợ chỉnh trong UI\nĐộ trễ toàn trình / VRAM: chưa có phép đo",
+                "muted",
+                True,
+            )
+        )
+        performance_layout.addSpacing(16)
+        row.addWidget(performance, 1)
+        presentation_layout.addLayout(row)
         self.logging_card, log_layout = panel(
-            "LƯU TRỮ PHIÊN",
-            "Nhật ký ghi phép đo và kết quả gốc. Giá trị thiếu được để trống, không thay bằng số không.",
+            "07 / LƯU TRỮ PHIÊN",
+            "CSV lưu phép đo và kết quả gốc; phép đo thiếu được để trống.",
         )
         log_row = QHBoxLayout()
         self.output_dir = QLineEdit("outputs")
@@ -126,29 +297,83 @@ class SettingsPage(QScrollArea):
         log_layout.addLayout(log_row)
         log_layout.addWidget(
             text_label(
-                "Mỗi phiên tạo một CSV riêng. Không kèm trọng số riêng cho động cơ và không tự tạo góc tham chiếu thực.",
+                "Mỗi phiên có tệp riêng. Không tự tạo góc tham chiếu thực hoặc thay thế giá trị thiếu bằng số không.",
                 "muted",
                 True,
             )
         )
-        layout.addWidget(self.logging_card)
-        notes, notes_layout = panel("TRƯỚC KHI ĐO CƠ CẤU THỰC")
-        notes_layout.addWidget(
-            text_label(
-                "01  Gá camera cố định, gần vuông góc với mặt phẳng chuyển động.\n"
-                "02  Chọn đúng tâm quay, chốt khuỷu và khớp thanh truyền–pít-tông.\n"
-                "03  Hiệu chuẩn hình học riêng; tệp ví dụ không xác nhận độ chính xác đo thực.",
-                "muted",
-                True,
-            )
-        )
-        layout.addWidget(notes)
-        layout.addStretch()
+        presentation_layout.addWidget(self.logging_card)
+        presentation_layout.addStretch()
+        self.tabs.addTab(presentation, "Hiển thị / lưu trữ")
         self.source_mode.currentIndexChanged.connect(self._source_changed)
         self.detector_mode.currentIndexChanged.connect(self.apply_availability)
         self.geom_path.editingFinished.connect(self.preview_geometry)
         self.apply_availability()
         self.preview_geometry()
+        for field in (
+            self.input_source,
+            self.weights_path,
+            self.device,
+            self.geom_path,
+            self.output_dir,
+        ):
+            field.textChanged.connect(self._refresh_summary)
+        self._refresh_summary()
+
+    def _refresh_summary(self):
+        mode = self.source_mode.currentData()
+        detector = (
+            self.detector_mode.currentText()
+            if mode != "simulation"
+            else "Bộ mô phỏng tổng hợp"
+        )
+        source = self.input_source.text() if mode != "simulation" else "Mô phỏng nội bộ"
+        geometry = (
+            Path(self.geom_path.text()).name
+            if mode != "simulation"
+            else "Hình học mặc định của Simulator"
+        )
+        weights = (
+            Path(self.weights_path.text()).name
+            if self.weights_path.text().strip()
+            else "Chưa chọn trọng số"
+        )
+        self.config_summary.setText(
+            f"Nguồn: {self.source_mode.currentText()} · {Path(source).name}\nNhận diện: {detector} · Hình học: {geometry}\nNhật ký: {self.output_dir.text()}"
+        )
+        self.config_summary.setToolTip(
+            f"Nguồn: {source}\nTrọng số: {weights}\nHình học: {self.geom_path.text()}\nThiết bị: {self.device.text()}"
+        )
+        reason = (
+            "Đang thu nhận: dừng phiên để sửa nguồn, mô hình và nơi lưu."
+            if self.locked
+            else "Mô phỏng: camera, detector, hình học ngoài và YOLO không được dùng."
+            if mode == "simulation"
+            else "Trọng số và thiết bị chỉ được kích hoạt khi chọn YOLO Pose. Chọn Video để bật nút chọn tệp."
+        )
+        self.activation_note.setText(
+            reason + " Tùy chọn hiển thị áp dụng ngay; tham số EKF chỉ đọc."
+        )
+        for widget in (
+            self.input_source,
+            self.video_button,
+            self.detector_mode,
+            self.weights_path,
+            self.weights_button,
+            self.device,
+            self.geom_path,
+            self.geometry_button,
+        ):
+            widget.setToolTip(
+                reason
+                if not widget.isEnabled()
+                else "Áp dụng cho phiên kế tiếp. "
+                + (
+                    "Thiết bị YOLO: cpu hoặc chỉ số GPU, ví dụ 0."
+                    if widget is self.device
+                    else ""
+                )
+            )
 
     def _source_changed(self):
         if self._last_mode in self._sources:
@@ -183,6 +408,8 @@ class SettingsPage(QScrollArea):
                 "video": "Tệp video có thể chứa mô phỏng hoặc cảnh thực. Nguồn video không tự chứng minh một phép đo đã được kiểm chứng.",
             }[mode]
         )
+
+        self._refresh_summary()
 
     def set_locked(self, locked):
         self.locked = locked

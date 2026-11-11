@@ -62,16 +62,16 @@ class DashboardShell(QWidget):
         outer.setSpacing(0)
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(196)
+        sidebar.setFixedWidth(208)
         side = QVBoxLayout(sidebar)
-        side.setContentsMargins(14, 23, 14, 18)
+        side.setContentsMargins(16, 24, 16, 16)
         side.setSpacing(8)
         brand = QHBoxLayout()
         mark = BrandMark()
         brand.addWidget(mark)
-        brand.addWidget(text_label("MECHA\nVISION", "brand"))
+        brand.addWidget(text_label("MechaVision\nAI", "brand"))
         side.addLayout(brand)
-        side.addWidget(text_label("NỀN TẢNG NGHIÊN CỨU · V3", "eyebrow"))
+        side.addWidget(badge("V4  ·  TRẠM NGHIÊN CỨU", "data"))
         side.addSpacing(20)
         side.addWidget(text_label("KHÔNG GIAN LÀM VIỆC", "eyebrow"))
         side.addSpacing(6)
@@ -83,13 +83,13 @@ class DashboardShell(QWidget):
             button.setCheckable(True)
             button.setIcon(navigation_icon(index))
             button.setIconSize(QSize(20, 20))
-            button.setMinimumHeight(45)
+            button.setMinimumHeight(52)
             button.setToolTip(subtitle)
             self.nav_group.addButton(button, index)
             self.nav_buttons.append(button)
             side.addWidget(button)
         side.addStretch()
-        session, session_layout = panel("TRẠM NGHIÊN CỨU")
+        session, session_layout = panel("Phiên hiện tại")
         self.sidebar_source = text_label("Chưa có dữ liệu", "muted", True)
         session_layout.addWidget(self.sidebar_source)
         self.sidebar_frames = text_label("— khung hình", "session_value")
@@ -101,16 +101,20 @@ class DashboardShell(QWidget):
         side.addWidget(session)
         side.addSpacing(8)
         side.addWidget(text_label("THỊ GIÁC × ĐỘNG HỌC", "eyebrow"))
-        side.addWidget(text_label("Mô phỏng không thay thế kiểm chứng trên cơ cấu thật.", "micro", True))
+        side.addWidget(
+            text_label(
+                "Mô phỏng không thay thế kiểm chứng trên cơ cấu thật.", "micro", True
+            )
+        )
         outer.addWidget(sidebar)
 
         main = QVBoxLayout()
-        main.setContentsMargins(20, 15, 20, 12)
+        main.setContentsMargins(16, 16, 16, 12)
         main.setSpacing(12)
         top = QHBoxLayout()
         titles = QVBoxLayout()
         titles.setSpacing(3)
-        titles.addWidget(text_label("MECHAVISION AI  /  TRẠM NGHIÊN CỨU V3", "eyebrow"))
+        titles.addWidget(text_label("TRẠM NGHIÊN CỨU  /  MECHAVISION AI V4", "eyebrow"))
         self.page_title = text_label("Giám sát", "page_title")
         titles.addWidget(self.page_title)
         top.addLayout(titles)
@@ -121,7 +125,10 @@ class DashboardShell(QWidget):
         self.system_badge.setMinimumWidth(132)
         top.addWidget(self.source_badge)
         top.addWidget(self.system_badge)
-        self.configure_btn = QPushButton("Cấu hình")
+        self.configure_btn = QPushButton()
+        self.configure_btn.setIcon(navigation_icon(3, True))
+        self.configure_btn.setFixedWidth(36)
+        self.configure_btn.setToolTip("Cài đặt hệ thống")
         self.start_btn = QPushButton("Bắt đầu phiên")
         self.start_btn.setObjectName("primary")
         self.stop_btn = QPushButton("Dừng")
@@ -129,14 +136,23 @@ class DashboardShell(QWidget):
         self.stop_btn.setEnabled(False)
         for button in (self.configure_btn, self.start_btn, self.stop_btn):
             top.addWidget(button)
-        main.addLayout(top)
+        header = QFrame()
+        header.setObjectName("station_header")
+        header.setFixedHeight(64)
+        header.setLayout(top)
+        top.setContentsMargins(0, 0, 0, 0)
+        main.addWidget(header)
         self.stack = QStackedWidget()
         main.addWidget(self.stack, 1)
         footer = QHBoxLayout()
         self.session_text = text_label(
             "Chưa có phiên • Dữ liệu được ghi khi bắt đầu", "muted"
         )
-        self.session_text.setWordWrap(True)
+        self.session_text.setWordWrap(False)
+        self.session_text.setMinimumWidth(0)
+        from PySide6.QtWidgets import QSizePolicy
+
+        self.session_text.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         footer.addWidget(self.session_text, 1)
         footer.addWidget(
             text_label("Nguyên mẫu nghiên cứu • Không chẩn đoán hư hỏng", "muted")
@@ -149,13 +165,21 @@ class DashboardShell(QWidget):
 
         if state.sample_count or state.phase != "idle":
             self.sidebar_source.setText(SOURCE_LABELS[state.mode])
-        self.sidebar_frames.setText(f"{state.sample_count:,} khung hình" if state.sample_count else "— khung hình")
+        self.sidebar_frames.setText(
+            f"{state.sample_count:,} khung hình"
+            if state.sample_count
+            else "— khung hình"
+        )
         times = state.series["time"]
-        self.sidebar_time.setText(f"Cửa sổ dữ liệu: {times[-1] - times[0]:.1f} s" if times else "Chưa có thời gian phiên")
+        self.sidebar_time.setText(
+            f"Cửa sổ dữ liệu: {times[-1] - times[0]:.1f} s"
+            if times
+            else "Chưa có thời gian phiên"
+        )
 
     def select_page(self, index):
         self.stack.setCurrentIndex(index)
-        self.page_title.setText(PAGES[index][0])
+        self.page_title.setText("Giám sát cơ cấu" if index == 0 else PAGES[index][0])
         for number, button in enumerate(self.nav_buttons):
             button.setChecked(number == index)
             button.setIcon(navigation_icon(number, number == index))

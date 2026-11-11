@@ -1,29 +1,28 @@
-# Trạng thái dự án — bàn giao V3
+# Trạng thái dự án — bàn giao V4
 
-Cập nhật 09/11/2026. Repository: `KienTruowng/MechaVision-AI`.
+Cập nhật 11/11/2026. Nhánh `feature/ultimate-dashboard-v4`, nền V3 `902d804833996aacf3b5ea5054314cd0150cbece`.
+Commit cuối là HEAD của bản bàn giao; mã đầy đủ nằm trong manifest.json đi kèm ZIP/bundle và được xác định bằng `git log -1 --format=fuller`. Không tự ghi hash của chính commit vào nội dung commit đó.
+V4 được commit cục bộ; không push, không tạo PR, không merge main trong lượt phát hành.
 
-## Mốc Git
+## Đã triển khai và xác minh
 
-- Nhánh: `feature/premium-dashboard-v3`, tạo trực tiếp từ V2.1 `65a448afd96be2f1d699ae34115a0e71edd92117`.
-- Commit mã giao diện V3 đã kiểm thử: `c7228c5330cbe589a6d4e095031dec988239da74`.
-- Commit cuối của gói bàn giao là `HEAD`, gồm bổ sung tài liệu sau mốc mã trên. Xác định chính xác bằng `git log -1 --format=fuller`; mã đầy đủ được ghi trong `manifest.json` và báo cáo đi cùng ZIP/bundle, tránh tự tham chiếu hash của chính commit chứa tài liệu.
-- Commit cục bộ, chưa push và chưa tạo PR cho V3. Kết nối GitHub trước đây trả 403; Git Credential Manager không dùng được trong sandbox. Không thử lại xác thực trong giai đoạn chốt V3. Không merge `main`.
+- Bốn trang Giám sát, Phân tích, Thực nghiệm và Cài đặt dùng design system V4. Giám sát giữ Camera/Twin 56:44, KPI/xu hướng/trạng thái ở dải dưới.
+- Camera cận cảnh/toàn khung, zoom/pan/fit, bật/tắt annotation từ ảnh thô; Twin cơ khí đồng tỷ lệ, chỉ hiển thị trạng thái theo dõi hoặc dự báo hợp lệ.
+- Phân tích có góc ba phương pháp, tọa độ pít-tông, RPM, residual, uncertainty, confidence, FPS và thời gian Processor.step. Thời gian này không phải độ trễ toàn trình.
+- Thực nghiệm dùng đánh giá nền thật của pipeline, bảng kết quả, lịch sử phiên và đường dẫn rút gọn có sao chép đầy đủ. Export CSV đối chiếu đúng byte với kết quả đánh giá; JSON do pipeline hiện có tạo.
+- Cài đặt phân nhóm nguồn/nhận diện, hình học/EKF, hiển thị/lưu trữ; khóa cấu hình khi đang thu nhận và áp dụng nguồn ở phiên tiếp theo. Tham số EKF chỉ đọc, không có điều khiển giả.
+- Bắt đầu/dừng mô phỏng, đổi trang, nguồn video qua decoder/dấu màu/EKF, dự báo/mất dấu, kết nối camera/báo lỗi đã chạy trên Windows.
+- **85 kiểm thử đạt, 0 thất bại**, toàn bộ suite chạy một lần; compileall src/tools đạt. [Nhật ký](../assets/dashboard-v4/pytest.txt).
+- 84 ảnh QA: 42 offscreen đúng kích thước và 42 Windows native; bao phủ bốn trang cùng các tab ở 1366×768, 1600×900, 1920×1080 yêu cầu. Không có bounds issue do công cụ phát hiện. Đã xem ảnh trực quan; không phát hiện lỗi nghiêm trọng cần sửa trong lượt chốt.
+- Góc tích lũy **671,5183°** giữ đúng trên KPI và đường EKF vật lý: thiết kế là góc liên tục, không modulo 360. [Bằng chứng](../assets/dashboard-v4/angle-check.txt).
+- Các module thuật toán lõi không đổi; controller chỉ bổ sung truyền ảnh thô để UI điều khiển lớp phủ.
 
-## Đã triển khai và kiểm tra
+## Giới hạn
 
-- Bốn trang Giám sát, Phân tích, Thực nghiệm và Cài đặt; vòng đời bắt đầu/dừng/kết nối/lỗi và khóa cấu hình khi chạy.
-- Sidebar V3 có biểu trưng cơ khí riêng, nguồn của phiên hiển thị, số khung và khoảng thời gian của bộ đệm. Header có nguồn/chế độ, trạng thái xử lý và điều khiển phiên.
-- KPI phía trên vùng quan sát; xu hướng tối đa 90 mẫu lấy trực tiếp từ DashboardState, giữ NaN khi thiếu dữ liệu. Không có chuỗi trang trí sinh ngẫu nhiên.
-- Quan sát có overlay keypoint, confidence gốc, cận cảnh/toàn khung, zoom hiển thị 1–2×. Twin đồng bộ EKF, có các bộ phận cơ khí và chiều sâu bản vẽ; không hoạt ảnh khi mất dấu.
-- Phân tích có góc quay ba phương pháp, RPM, sai lệch động học, độ bất định và FPS. FPS là nhịp xử lý hiện có, không phải benchmark GPU hoặc độ trễ toàn trình.
-- Đánh giá nền, CSV/JSON và phiên video qua decoder → detector dấu màu → EKF; kiểm tra dự báo và mất dấu. Kiểm thử đối chiếu kết quả đánh giá với hàm gốc.
-- **60 kiểm thử đạt**, kiểm tra cú pháp đạt. Xem [nhật ký](../assets/dashboard-v3/pytest.txt), [đối chiếu thuật toán](../assets/dashboard-v3/algorithm-audit.txt).
-- Hai lượt QA, mỗi lượt 18 ảnh: [offscreen](../assets/dashboard-v3/exact/qa-result.json) và [Windows native](../assets/dashboard-v3/windows/qa-result.json); không phát hiện QLabel bị cắt sau khi hoàn tất layout. Đã xem trực quan ảnh giám sát và phân tích. Các trang còn lại được chụp và kiểm tra bounds tự động, chưa có đợt nghiệm thu thẩm mỹ chuyên sâu V3.
+Camera 0 không mở được: chỉ xác minh lỗi kết nối, chưa có luồng camera vật lý. Chưa xác minh LEGO thật, hiệu chuẩn vật lý, YOLO Pose trọng số LEGO riêng, tham chiếu góc độc lập hoặc độ chính xác EKF thực nghiệm. Mô phỏng/video fixture chỉ kiểm tra phần mềm.
+Windows native bị giới hạn một số cửa sổ yêu cầu 1920×1080 thành 1920×1055; JSON ghi kích thước thực. Offscreen kiểm đủ kích thước chính xác. Lượt native dùng scale-factor 0.8 trên desktop DPI 125%, DPR ghi nhận 1; chưa bao phủ toàn bộ tổ hợp DPI/màn hình. Chưa benchmark RTX 3050 Ti hay độ trễ toàn trình.
+Không tuyên bố đạt chất lượng thương mại Sentinex chỉ dựa trên test hoặc screenshot.
 
-## Chưa được xác minh
+Xem [báo cáo](../BAO_CAO_V4.md), [khôi phục và tiếp tục](HANDOFF.md), [QA Windows](../assets/dashboard-v4/windows/qa-result.json), [QA đúng kích thước](../assets/dashboard-v4/exact/qa-result.json).
 
-- Camera 0 không mở được trên máy QA. Chỉ xác minh kết nối/báo lỗi, chưa xác minh luồng hình ảnh camera vật lý hoặc cơ cấu LEGO thật.
-- Chưa có tập dữ liệu LEGO thực được kiểm chứng, trọng số YOLO Pose huấn luyện riêng, benchmark suy luận thực hoặc hiệu chuẩn sai số vật lý.
-- Chưa có tham chiếu góc độc lập/encoder cho cơ cấu thật, chưa xác minh MAE/RMSE/bao phủ/độ bất định EKF trên LEGO. Mọi kết quả mô phỏng chỉ kiểm chứng luồng phần mềm.
-- Kích thước chính xác 1366×768 và 1920×1080 được kiểm tra bằng offscreen. Windows native có một số cửa sổ yêu cầu 1920×1080 bị giới hạn nội dung thành 1920×1055; xem từng bản ghi JSON.
-- V3 là bản bàn giao ổn định trong giới hạn thời gian/hạn mức, **chưa được nghiệm thu là tương đương phần mềm thương mại theo ảnh tham chiếu**. Các khoảng trống và độ lớn cơ cấu còn có thể cải thiện; chưa có chế độ ảnh camera thô tắt overlay hay cửa sổ quan sát tách riêng.
+Kiểm tra lint bổ sung: Ruff còn 116 cảnh báo/lỗi quy tắc trên src/tools/tests (gồm định dạng/import và chất lượng mã); chưa xử lý hàng loạt trong lượt phát hành để tránh thay đổi ngoài phạm vi. Đây không phải lỗi pytest. Nhật ký: assets/dashboard-v4/ruff.txt.

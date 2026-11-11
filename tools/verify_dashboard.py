@@ -1,4 +1,4 @@
-"""Chạy QWidget thật, kiểm tra tương tác và chụp Dashboard V3 ở hai kích thước.
+"""Chạy QWidget thật, kiểm tra tương tác và chụp Dashboard V4 ở ba kích thước.
 
 Video sinh trong công cụ này là fixture tổng hợp có nhãn rõ ràng; không phải
 dữ liệu đo cơ cấu thực và không được dùng để công bố độ chính xác thực tế.
@@ -14,11 +14,11 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
-        description="Kiểm chứng giao diện Dashboard V2 và chụp ảnh bằng Qt."
+        description="Kiểm chứng giao diện Dashboard V4 và chụp ảnh bằng Qt."
     )
     parser.add_argument(
         "--out",
-        default="outputs/dashboard-v3-qa",
+        default="outputs/dashboard-v4-qa",
         help="Thư mục lưu ảnh và biên bản JSON",
     )
     parser.add_argument(
@@ -42,7 +42,16 @@ def main():
         os.environ["QT_SCALE_FACTOR"] = str(args.scale_factor)
     if not args.native:
         os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    from PySide6.QtCore import Qt, QTimer, QEventLoop, QRect, QCoreApplication, QEvent
+    from PySide6.QtCore import (
+        Qt,
+        QTimer,
+        QEventLoop,
+        QRect,
+        QCoreApplication,
+        QEvent,
+        QPoint,
+        QPointF,
+    )
     from PySide6.QtWidgets import QApplication, QLabel
     from PySide6.QtGui import QFontInfo
     from PySide6.QtTest import QTest
@@ -61,12 +70,14 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication([])
     window = MainWindow()
-    window.settings.output_dir.setText("outputs/qa_dashboard_v2/sessions")
-    window.experiments.output_root.setText("outputs/qa_dashboard_v2/experiments")
+    window.settings.output_dir.setText("outputs/qa_dashboard_v4/sessions")
+    window.experiments.output_root.setText("outputs/qa_dashboard_v4/experiments")
     window.show()
     notices = []
     window._notify = lambda title, text: notices.append(dict(title=title, text=text))
     record = dict(
+        dashboard="V4",
+        baseline="902d804833996aacf3b5ea5054314cd0150cbece",
         python=sys.version.split()[0],
         qt=PySide6.__version__,
         pyqtgraph=pyqtgraph.__version__,
@@ -120,6 +131,15 @@ def main():
                 source=window.state.mode,
                 frames=window.state.sample_count,
                 tracking=None if metrics is None else metrics["physics"].status,
+                page=window.shell.stack.currentIndex(),
+                camera_viewport=[
+                    window.monitor.camera.width(),
+                    window.monitor.camera.height(),
+                ],
+                twin_viewport=[
+                    window.monitor.twin.width(),
+                    window.monitor.twin.height(),
+                ],
             )
         )
         for label in window.findChildren(QLabel):
@@ -136,10 +156,16 @@ def main():
             if bounds.height() > label.height() + 3 or (
                 not label.wordWrap() and bounds.width() > label.width() + 3
             ):
-                record["bounds_issues"].append(dict(image=filename, text=label.text(),
-                    label_size=[label.width(),label.height()], text_size=[bounds.width(),bounds.height()]))
+                record["bounds_issues"].append(
+                    dict(
+                        image=filename,
+                        text=label.text(),
+                        label_size=[label.width(), label.height()],
+                        text_size=[bounds.width(), bounds.height()],
+                    )
+                )
 
-    sizes = [(1366, 768), (1920, 1080)]
+    sizes = [(1366, 768), (1600, 900), (1920, 1080)]
     for size in sizes:
         window.navigate(0)
         capture("empty", size)
@@ -151,6 +177,12 @@ def main():
         for page, name in [(0, "monitoring"), (1, "analytics")]:
             QTest.mouseClick(window.shell.nav_buttons[page], Qt.LeftButton)
             capture(name, size)
+    window.navigate(1)
+    for tab, name in [(1,"analytics-quality"),(2,"analytics-performance")]:
+        window.analysis.tabs.setCurrentIndex(tab)
+        for size in sizes:
+            capture(name,size)
+    window.analysis.tabs.setCurrentIndex(0)
     window.navigate(0)
     QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
     assert window.monitor.camera.focus_rect is None
@@ -175,9 +207,58 @@ def main():
     )
     for size in sizes:
         capture("experiments", size)
+    window.experiments.result_tabs.setCurrentIndex(1)
+    for size in sizes:
+        capture("experiments-table",size)
+    window.experiments.result_tabs.setCurrentIndex(0)
+    exported = output / "evaluation-synthetic-only.csv"
+    original = window.experiments.export_results_to(exported)
+    assert exported.read_bytes() == original.read_bytes()
+    record["checks"].append("export_matches_original_evaluation_csv")
     QTest.mouseClick(window.stop_btn, Qt.LeftButton)
     wait_until(lambda: window.state.phase == "stopped")
     assert window.worker.wait(3000)
+    # Kiểm tra lớp hiển thị trên mẫu đã dừng: không đổi quan sát/ước lượng.
+    window.navigate(0)
+    window.resize(*sizes[0])
+    app.processEvents()
+    stopped_metrics = window.state.metrics
+    stopped_count = window.state.sample_count
+    raw_image = window.monitor.camera.image.copy()
+    QTest.mouseClick(window.monitor.annotation_button, Qt.LeftButton)
+    assert not window.monitor.annotation_button.isChecked()
+    assert window.monitor.camera.image == raw_image
+    capture("monitoring-annotations-off", sizes[0])
+    QTest.mouseClick(window.monitor.annotation_button, Qt.LeftButton)
+    assert window.monitor.annotation_button.isChecked()
+    window.monitor.camera.set_zoom(1.5)
+    before_pan = QPointF(window.monitor.camera.pan_offset)
+    center = window.monitor.camera.rect().center()
+    QTest.mousePress(window.monitor.camera, Qt.LeftButton, pos=center)
+    QTest.mouseMove(window.monitor.camera, center + QPoint(32, 18), delay=30)
+    QTest.mouseRelease(
+        window.monitor.camera, Qt.LeftButton, pos=center + QPoint(32, 18)
+    )
+    assert window.monitor.camera.pan_offset != before_pan
+    QTest.mouseClick(window.monitor.fit_button, Qt.LeftButton)
+    assert window.monitor.camera.zoom_factor == 1
+    assert window.monitor.camera.pan_offset == QPointF()
+    QTest.mouseClick(window.monitor.twin_zoom_plus, Qt.LeftButton)
+    assert window.monitor.twin.zoom_factor > 1
+    capture("monitoring-twin-zoom", sizes[0])
+    QTest.mouseClick(window.monitor.twin_fit_button, Qt.LeftButton)
+    assert window.monitor.twin.zoom_factor == 1
+    assert window.monitor.twin.pan_offset == QPointF()
+    assert window.state.metrics is stopped_metrics
+    assert window.state.sample_count == stopped_count
+    record["checks"].extend(
+        [
+            "annotation_toggle_preserves_raw_image",
+            "camera_pan_fit",
+            "twin_zoom_fit",
+            "view_controls_preserve_state",
+        ]
+    )
     record["checks"].extend(
         [
             "start_simulation",
@@ -190,9 +271,14 @@ def main():
     for size in sizes:
         window.navigate(3)
         capture("settings", size)
+    for tab,name in [(1,"settings-geometry"),(2,"settings-display")]:
+        window.settings.tabs.setCurrentIndex(tab)
+        for size in sizes:
+            capture(name,size)
+    window.settings.tabs.setCurrentIndex(0)
 
     # Dùng tệp video tổng hợp thật để đi qua decoder, detector, EKF và UI.
-    fixture = root / "outputs/qa_dashboard_v2/fixture"
+    fixture = root / "outputs/qa_dashboard_v4/fixture"
     fixture.mkdir(parents=True, exist_ok=True)
     video = fixture / "synthetic_test_only.avi"
     geometry = fixture / "geometry.json"

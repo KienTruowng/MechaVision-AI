@@ -1,69 +1,63 @@
-# Bàn giao cho phiên Codex tiếp theo
+# Bàn giao MechaVision AI Dashboard V4
 
-## Đọc trước và xác định mốc
+Ngày 11/11/2026. Đây là trạng thái phát hành V4, thay thế ghi chú làm dở V3/V4 trước đây.
 
-Đọc [AGENTS.md](../AGENTS.md), [PROJECT_STATUS.md](PROJECT_STATUS.md), [ARCHITECTURE.md](ARCHITECTURE.md) và [ROADMAP.md](ROADMAP.md). Người dùng yêu cầu chốt sớm V3 do hạn mức còn 12%, không tiếp tục chỉnh thẩm mỹ nhỏ hoặc mở rộng tính năng. Chưa nghiệm thu mức tương đương thiết kế tham chiếu thương mại. Không sao chép tên/logo/chức năng kiểm tra lỗi sản phẩm của ảnh tham chiếu.
+## Git và nguyên tắc tiếp tục
 
-Nhánh `feature/premium-dashboard-v3`; nền `65a448a`, mốc mã V3 `c7228c5`. Commit tài liệu cuối chính là `HEAD` của bundle; hash cuối nằm trong manifest/báo cáo bên cạnh bundle. Chưa push/PR V3, không merge main. Đừng coi trạng thái remote-tracking cũ là đã đồng bộ GitHub.
+- Nhánh: `feature/ultimate-dashboard-v4`; nền V3: `902d804833996aacf3b5ea5054314cd0150cbece`.
+- Commit bàn giao: HEAD trong bundle; lấy hash chính xác từ manifest.json bên cạnh gói hoặc `git rev-parse HEAD` sau clone. Không tự tham chiếu hash trong commit chứa tài liệu.
+- Đã chốt UI; không redesign nếu không có yêu cầu mới. Luôn kiểm tra `git status -sb` trước sửa; không reset/ghi đè thay đổi đang có.
+- Không push, PR hoặc merge main trong đợt phát hành này. Kiểm tra remote thực tế trước mọi thao tác GitHub sau này.
+- Repository hiện tại: `C:/Users/heyim/Documents/Codex/2026-11-09/h-y-l-m-vi-c/work/MechaVision-AI`.
+- Gói bàn giao: `C:/Users/heyim/Documents/Codex/2026-11-09/h-y-l-m-vi-c/outputs/dashboard-v4-release/` gồm ZIP, bundle, manifest và báo cáo.
 
-```powershell
-git status -sb
-git log -3 --oneline
-git remote -v
-```
+## Thiết lập Windows
 
-## Khôi phục khi chưa push
-
-ZIP chứa mã nguồn/tài liệu/kiểm thử/ảnh đã theo dõi, không có `.git` hoặc môi trường `.venv`. Bundle chứa nhánh V3 và lịch sử Git đầy đủ. Thay đường dẫn ví dụ bằng nơi đã lưu tệp bàn giao:
-
-```powershell
-git clone -b feature/premium-dashboard-v3 "C:\duong-dan\MechaVision-AI-Dashboard-V3.bundle" MechaVision-AI
-cd MechaVision-AI
-git log -1 --format=fuller
-git status -sb
-```
-
-Nếu đã có clone khác, nhập bundle vào nhánh review mới, không ghi đè thay đổi đang làm:
+Python 3.11–3.13, khuyến nghị môi trường ảo riêng. Từ thư mục repository:
 
 ```powershell
-git fetch "C:\duong-dan\MechaVision-AI-Dashboard-V3.bundle" feature/premium-dashboard-v3
-git switch -c review/dashboard-v3 FETCH_HEAD
-```
-
-Clone từ bundle có thể đặt `origin` trỏ tới tệp bundle. Kiểm tra `git remote -v` trước khi cập nhật remote; repository đích là `https://github.com/KienTruowng/MechaVision-AI.git`. Tài liệu này chỉ hướng dẫn khôi phục; không có thao tác tự merge/push.
-
-## Môi trường và chạy ứng dụng
-
-Python 3.11–3.13, khuyến nghị 3.12. Đã QA bằng Python 3.12.13, PySide6 6.12.0, PyQtGraph 0.14.0 trên Windows. Không đóng gói interpreter hoặc phụ thuộc vào ZIP. Cần phông Unicode hệ thống (Segoe UI trên Windows).
-
-```powershell
-py -3.12 -m venv .venv
+py -3.11 -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
 .venv\Scripts\python.exe -m pip install -e ".[gui,dev]"
 .venv\Scripts\python.exe -m mechavision gui
-.venv\Scripts\python.exe -m pytest -q
-.venv\Scripts\python.exe -m compileall -q src tools/verify_dashboard.py
 ```
 
-YOLO tùy chọn dùng nhóm `train`; chưa có trọng số LEGO riêng để thử. Chạy mô phỏng trước: Cài đặt → Mô phỏng → Bắt đầu phiên. Camera/video yêu cầu JSON hiệu chuẩn; file cấu hình mẫu không xác nhận hiệu chuẩn vật lý.
+Nếu cần YOLO: cài thêm `.[train]`, cung cấp trọng số riêng và chọn thiết bị phù hợp. ZIP không kèm môi trường ảo hoặc trọng số LEGO chưa tồn tại. Bắt đầu với Cài đặt → Mô phỏng → Bắt đầu phiên. Dừng phiên trước đổi nguồn; hình học và detector áp dụng ở phiên tiếp theo, tùy chọn hiển thị áp dụng ngay.
+
+## Cấu trúc và hợp đồng phải giữ
+
+`src/mechavision/`: pipeline và UI; `tests/`: regression; `tools/`: QA; `configs/`: cấu hình mẫu; `docs/`: thiết kế/kiến trúc; `assets/dashboard-v4/`: bằng chứng QA; `outputs/`: dữ liệu chạy, không commit.
+Đọc [ARCHITECTURE.md](ARCHITECTURE.md) trước sửa. Giữ `Observation`, `Estimate`, `Worker.sample(frame, twin, data)`, API/CLI và khóa CSV/JSON. Thứ tự điểm `pivot/crank/piston`, đơn vị pixel/giây/radian/rad/s không đổi. UI đổi sang độ/RPM. Không chỉnh YOLO Pose, EKF hoặc Geometry để làm hình đẹp hơn. `raw_frame` là signal bổ sung; không thay sample. Không lấp phép đo thiếu bằng số 0.
+Góc hiển thị là góc tích lũy; >360° hợp lệ. Twin chỉ cập nhật TRACKING/PREDICTED, dự báo có nhãn; không tạo chuyển động khi mất dấu. Confidence không phải độ chính xác thực nghiệm. Thời gian Processor.step không bao gồm toàn bộ camera/detector/render.
+
+## Kiểm chứng cuối
+
+85 passed / 0 failed; syntax/import và toàn bộ suite đã chạy một lần. 84 ảnh QA của bốn trang và các tab, ba kích thước yêu cầu. Zoom/pan/fit, annotation, export CSV, mô phỏng, video fixture, stop/start, dự báo/mất dấu và lỗi camera đã kiểm tra. Góc 671,5183° nhất quán giữa KPI và biểu đồ.
+Xem [PROJECT_STATUS.md](PROJECT_STATUS.md) và [báo cáo](../BAO_CAO_V4.md) để biết giới hạn DPI/kích thước native. Camera 0 không mở được; chưa kiểm chứng LEGO, YOLO riêng, độ chính xác vật lý hay benchmark GPU. Không dùng kết quả synthetic làm kết quả thực nghiệm.
+
+Lệnh regression: `python -m pytest -q`. QA khi UI thay đổi: `python tools/verify_dashboard.py --out outputs/qa --camera`; thêm `--native --scale-factor 0.8` để tái lập đợt Windows vừa chạy. Đọc JSON kích thước thực, không chỉ tên ảnh.
+
+## Khôi phục Git bundle
+
+Tại thư mục chứa bundle, clone vào thư mục mới (không ghi đè repo đang làm):
 
 ```powershell
-.venv\Scripts\python.exe tools/verify_dashboard.py --out outputs/dashboard-v3-qa/exact --camera
-.venv\Scripts\python.exe tools/verify_dashboard.py --native --scale-factor 0.8 --out outputs/dashboard-v3-qa/windows --camera
+git clone -b feature/ultimate-dashboard-v4 MechaVision-AI-Dashboard-V4.bundle MechaVision-AI-restored
+cd MechaVision-AI-restored
+git bundle verify ../MechaVision-AI-Dashboard-V4.bundle
+git log -1 --format=fuller
+git status -sb
+git remote -v
 ```
 
-`0.8` dùng cho tiến trình QA trên máy Windows đặt DPI 125%, không đổi cấu hình màn hình hệ thống. Đọc kích thước thực trong JSON. Công cụ tạo video dấu màu tổng hợp để thử decoder/EKF/mất dấu, không phải video LEGO thật. Nếu sandbox không ghi được thư mục tạm, đặt `TEMP` và `TMP` vào một thư mục có quyền ghi trong workspace rồi chạy lại pytest; không bỏ qua lỗi kiểm thử.
+Bundle chứa lịch sử đầy đủ của nhánh V4. So sánh HEAD với manifest.json; origin sau clone là đường dẫn bundle, không phải GitHub. ZIP là mã nguồn của cùng commit, không có .git; dùng bundle để giữ lịch sử. Gói đã được kiểm CRC/blob và clone thử bởi script đóng gói, kết quả ghi trong manifest bên ngoài commit.
 
-## Bản đồ nhanh và hợp đồng kỹ thuật
+## Tiếp theo
 
-- `src/mechavision/gui.py`: vòng đời phiên, signal/slot, điểm vào `launch()` và các alias giao diện giữ tương thích.
-- `dashboard_shell/widgets/theme/monitoring/analytics/settings/experiments.py`: shell/component/theme và bốn trang; `render.py` là phép vẽ BGR, `i18n.py` vẽ Unicode.
-- `dashboard_controller.py`: Worker/QThread giữ pipeline; `dashboard_state.py`: bộ đệm 3.600 mẫu và số khung tổng. Sparkline chỉ lấy 90 mẫu cuối, FPS dùng chuỗi hiện có.
-- `geometry.py`, `estimators.py`, `processing.py`: động học, EKF và xử lý. `detection.py`, `acquisition.py`, `synthetic.py`: detector, nguồn thu nhận và mô phỏng. `session.py`, các module evaluation, dataset/train: ghi phiên, đánh giá và dữ liệu/huấn luyện.
-- `tests/`, `tools/verify_dashboard.py`, `assets/dashboard-v3/`: bằng chứng kiểm thử; `configs/`: hình học mẫu; `docs/`: tài liệu. `outputs/`, `.venv` và cache được bỏ qua.
+1. Kiểm tra camera thật, quyền Windows, backend và khung hình trước khi lắp LEGO; xác minh mất dấu/phục hồi trên nguồn thật.
+2. Hiệu chuẩn hình học, thu video LEGO nhiều phiên/tốc độ/ánh sáng; tách train/validation/test theo phiên.
+3. Gán nhãn ba điểm, huấn luyện YOLO Pose; lưu nguồn gốc dữ liệu/trọng số và đánh giá tập độc lập.
+4. Thu góc tham chiếu độc lập/encoder, so sánh thị giác trực tiếp/EKF thời gian/EKF vật lý; báo cáo MAE/RMSE/P95, độ bao phủ và bất định theo phiên.
+5. Đo FPS/latency thực trên máy đích và kiểm tra DPI bổ sung. Chỉ sửa lỗi tái hiện, giữ baseline V4.
 
-Không đổi các API/khóa dữ liệu để phục vụ UI. Đơn vị nội bộ: pixel, giây, radian, rad/s; UI đổi sang độ/vòng phút. Ba điểm `pivot`, `crank`, `piston`; trạng thái `TRACKING`, `PREDICTED`, `LOST`, `UNINITIALIZED`. Giá trị thiếu không được đổi thành 0. CSV giữ tên cột và `truth_rad_synthetic_only` chỉ là truth mô phỏng. Twin là kết quả ước lượng, không phải cảm biến độc lập; confidence detector không phải độ chính xác mô hình.
-
-## Kiểm chứng cuối và việc còn lại
-
-60 test đạt, compileall đạt, AST thuật toán không đổi. Hai lượt QA ×18 ảnh; khởi động, bắt đầu/dừng/đổi trang, cận cảnh/zoom, đánh giá nền, video và trạng thái dự báo/mất dấu/lỗi camera đã chạy. Xem nhật ký và giới hạn trong PROJECT_STATUS. Camera 0 không mở được; chưa có kiểm chứng vật lý LEGO, YOLO riêng hoặc đánh giá EKF trên dữ liệu thực. Ưu tiên tiếp theo là camera/hiệu chuẩn, thu dữ liệu LEGO, nhãn/huấn luyện YOLO Pose và tham chiếu độc lập trước khi công bố kết quả thực nghiệm.
+Kiểm tra lint bổ sung: Ruff còn 116 cảnh báo/lỗi quy tắc trên src/tools/tests (gồm định dạng/import và chất lượng mã); chưa xử lý hàng loạt trong lượt phát hành để tránh thay đổi ngoài phạm vi. Đây không phải lỗi pytest. Nhật ký: assets/dashboard-v4/ruff.txt.

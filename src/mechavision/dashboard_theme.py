@@ -2,13 +2,13 @@
 
 SPACING = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24}
 COLORS = {
-    "background": "#060f18",
-    "panel": "#0b1b27",
-    "border": "#203540",
+    "background": "#060d18",
+    "panel": "#0d192b",
+    "border": "#253449",
     "text": "#dce7f4",
     "muted": "#9db1c8",
     "cyan": "#50d4ed",
-    "blue": "#438fff",
+    "blue": "#8d8cff",
     "valid": "#48d5b1",
     "warning": "#f0c36a",
     "error": "#ff7b87",
@@ -43,10 +43,10 @@ def apply_application_theme(app):
 
 STYLE = """
 QWidget { color:#dce7f4; font-family:"Segoe UI"; font-size:13px; }
-QMainWindow, QWidget#shell { background:#060f18; }
+QMainWindow, QWidget#shell { background:#060d18; }
 QFrame#sidebar { background:#07131e; border-right:1px solid #1b2b40; }
-QFrame#panel { background:#0b1b27; border:1px solid #203540; border-radius:10px; }
-QFrame#kpi { background:#0b1b27; border:1px solid #203540; border-radius:9px; }
+QFrame#panel { background:#0d192b; border:1px solid #253449; border-radius:10px; }
+QFrame#kpi { background:#0d192b; border:1px solid #253449; border-radius:9px; }
 QFrame#notice { background:#101f31; border:1px solid #263c54; border-radius:8px; }
 QLabel { background:transparent; border:none; }
 QLabel#brand { color:#f0f6ff; font-size:17px; font-weight:700; letter-spacing:1px; }
@@ -82,7 +82,7 @@ QComboBox QAbstractItemView { background:#10243a; color:#dce7f4; selection-backg
 QCheckBox { spacing:7px; color:#9db1c8; }
 QCheckBox::indicator { width:14px; height:14px; border:1px solid #395570; border-radius:3px; background:#0a1929; }
 QCheckBox::indicator:checked { background:#2ca4cb; border-color:#59c9e7; }
-QTableWidget { background:#0b1b27; alternate-background-color:#102135; color:#bfd0e2; border:none; gridline-color:#1c3047; selection-background-color:#1d405c; }
+QTableWidget { background:#0d192b; alternate-background-color:#102135; color:#bfd0e2; border:none; gridline-color:#1c3047; selection-background-color:#1d405c; }
 QTableWidget::item { padding:5px 7px; border-bottom:1px solid #1b2d43; }
 QHeaderView::section { background:#11253b; color:#8da9c5; border:none; border-bottom:1px solid #2b425c; padding:7px; font-weight:600; font-size:11px; }
 QTableCornerButton::section { background:#11253b; border:none; }
@@ -105,3 +105,36 @@ QFrame#kpi { border-top:2px solid #2e697b; border-radius:7px; }
 QLabel#eyebrow { font-size:9px; letter-spacing:1px; }
 QPushButton#nav:checked { border-left:3px solid #56d8e6; background:#103340; color:#a0e7ee; }
 '''
+
+STYLE += """
+QFrame#panel { border:1px solid #253449; border-radius:9px; }
+QFrame#kpi { border-top:2px solid #4d648c; background:#101d31; }
+QPushButton#nav:checked { background:#232047; color:#d7ceff; border-left:3px solid #a898ff; }
+QPushButton:checked { background:#183c51; color:#8ee9f6; border-color:#3e7d96; }
+QPushButton#primary { background:#5950b8; border-color:#8b80eb; }
+QPushButton#primary:hover { background:#7163d2; }
+QTabWidget::pane { border:0; }
+QTabBar::tab { background:#101d31; color:#90a6c0; padding:6px 12px; border-bottom:2px solid transparent; }
+QTabBar::tab:selected { color:#c5b9ff; border-bottom-color:#9987ed; background:#1b2340; }
+QTabBar::tab:hover { color:#dce8fb; background:#21334c; }
+QGroupBox { border:1px solid #253449; margin-top:12px; border-radius:8px; padding-top:12px; }
+QGroupBox::title { subcontrol-origin:margin; left:12px; color:#c2b7f1; }
+"""
+
+# Đặc tả V4: bề mặt dụng cụ, typography và phân cấp dùng chung.
+STYLE += """
+QMainWindow, QWidget#shell { background:#070C14; }
+QFrame#sidebar { background:#0A111D; border-right:1px solid #29394E; }
+QFrame#panel { background:#101B2B; border:1px solid #29394E; border-radius:12px; }
+QLabel#brand { font-size:17px; letter-spacing:0px; }
+QLabel#page_title { font-size:28px; font-weight:600; }
+QLabel#panel_title { font-size:16px; font-weight:600; }
+QLabel#section_title { font-size:20px; font-weight:600; }
+QLabel#muted, QLabel#micro, QLabel#unit { font-size:12px; color:#AABCD1; }
+QLabel#eyebrow { font-size:10px; letter-spacing:1px; }
+QFrame#metric_cell { background:transparent; border:none; border-bottom:1px solid #29394E; border-radius:0; }
+QPushButton#nav { font-size:14px; border-radius:8px; }
+QPushButton#nav:checked { background:#242240; border-color:#3A345E; border-left:3px solid #A696FF; color:#E7E1FF; }
+QPushButton#primary { background:#6558C7; border-color:#8879E1; }
+QPushButton#primary:hover { background:#7869DC; }
+"""

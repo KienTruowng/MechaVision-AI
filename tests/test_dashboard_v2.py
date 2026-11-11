@@ -362,7 +362,7 @@ def test_closeup_toggle_keeps_original_image_and_measurements(window, app):
     QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
     app.processEvents()
     assert window.camera_label.focus_rect is None
-    assert window.monitor.focus_button.text() == "Toàn khung"
+    assert window.monitor.focus_button.accessibleName() == "Toàn khung"
     QTest.mouseClick(window.monitor.focus_button, Qt.LeftButton)
     assert window.camera_label.focus_rect == region
     assert window.camera_label.image == image
@@ -443,3 +443,7 @@ def test_recorded_evaluation_uses_original_csv_reference_pipeline(window, tmp_pa
     assert page.last_result == expected
     assert page.result_badge.text() == "QUAN SÁT ĐÃ GHI"
     assert page.results_table.rowCount() == 3
+    exported = tmp_path / "export-recorded.csv"
+    original = page.export_results_to(exported)
+    assert original.name == "real_ablation.csv"
+    assert exported.read_bytes() == (tmp_path / "expected" / "real_ablation.csv").read_bytes()

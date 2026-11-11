@@ -12,6 +12,7 @@ from .render import twin_frame, decorate_video
 
 class Worker(QThread):
     sample = Signal(object, object, object)
+    raw_frame = Signal(object)
     failed = Signal(str)
     ended = Signal()
 
@@ -47,6 +48,7 @@ class Worker(QThread):
                     obs = simulator.step(1 / 30)
                     metrics = processor.step(obs)
                     frame = draw_mechanism(geo, obs.truth_theta, 900, 520)
+                    self.raw_frame.emit(frame.copy())
                     draw_observations(frame, obs)
                     est = metrics["physics"]
                     twin = twin_frame(geo, est)
@@ -68,6 +70,7 @@ class Worker(QThread):
                         if sample is None:
                             break
                         frame, ts, index = sample
+                        self.raw_frame.emit(frame.copy())
                         obs = detector.detect(frame, ts, index)
                         metrics = processor.step(obs)
                         est = metrics["physics"]

@@ -12,10 +12,14 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QSizePolicy,
     QPushButton,
+    QTabWidget,
+    QPlainTextEdit,
+    QGridLayout,
 )
 from .dashboard_theme import COLORS
 from .dashboard_widgets import (
     panel,
+    viewport_icon,
     text_label,
     badge,
     set_tone,
@@ -58,9 +62,9 @@ def value_text(value, precision=1):
 
 
 class KpiStrip(QWidget):
-    def __init__(self):
+    def __init__(self, columns=None, compact=False, show_state=True):
         super().__init__()
-        layout = QHBoxLayout(self)
+        layout = QGridLayout(self) if columns else QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(9)
         self.labels = {}
@@ -71,14 +75,38 @@ class KpiStrip(QWidget):
             ("discrepancy", "Sai lệch động học", "px", "Quan sát / mô hình"),
             ("sigma", "Độ bất định", "°", "σθ của bộ lọc"),
             ("fps", "Nhịp xử lý", "khung/s", "Nhịp cập nhật phiên"),
+            (
+                "confidence",
+                "Tin cậy điểm",
+                "0–1",
+                "Điểm thấp nhất trong các keypoint hiện có; không phải xác suất đúng",
+            ),
             ("state", "Trạng thái", "", "Chất lượng theo dõi"),
         ]:
-            card = KpiCard(title, unit, caption, state=name == "state")
+            if compact:
+                title = {
+                    "rpm": "RPM",
+                    "fps": "FPS",
+                    "discrepancy": "Sai lệch",
+                    "sigma": "Bất định",
+                    "confidence": "Tin cậy",
+                }.get(name, title)
+            card = KpiCard(title, unit, caption, state=name == "state", compact=compact)
             if name in ("angle", "rpm"):
-                card.value.setStyleSheet("color:#70def2;")
+                card.value.setStyleSheet(
+                    "color:#70def2;"
+                    + ("font-size:30px; font-weight:600;" if compact else "")
+                )
             self.labels[name] = card.value
             self.cards[name] = card
-            layout.addWidget(card, 1)
+            if name == "state" and not show_state:
+                card.setParent(self)
+                card.hide()
+            elif columns:
+                index = len(self.cards) - 1
+                layout.addWidget(card, index // columns, index % columns)
+            else:
+                layout.addWidget(card, 1)
         self.labels["sigma"].setToolTip(
             "Độ lệch chuẩn góc do EKF ước lượng; cần kiểm chứng hiệu chuẩn riêng."
         )
@@ -97,8 +125,21 @@ class KpiStrip(QWidget):
             card.sparkline.set_values([])
 
     def update_trends(self, state):
-        for name, series in [("angle", "physics_angle"), ("rpm", "physics_rpm"),
-                             ("discrepancy", "discrepancy"), ("sigma", "physics_sigma"), ("fps", "fps")]:
+        points = list(state.observation.landmarks.values()) if state.observation else []
+        scores = [p.confidence for p in points if math.isfinite(p.confidence)]
+        self.labels["confidence"].setText(
+            value_text(min(scores) if scores else None, 2)
+        )
+        self.cards["confidence"].setToolTip(
+            f"Điểm nhỏ nhất trong {len(scores)}/3 keypoint hiện có; không phải xác suất đúng hoặc độ chính xác mô hình."
+        )
+        for name, series in [
+            ("angle", "physics_angle"),
+            ("rpm", "physics_rpm"),
+            ("discrepancy", "discrepancy"),
+            ("sigma", "physics_sigma"),
+            ("fps", "fps"),
+        ]:
             self.cards[name].sparkline.set_values(state.series[series])
             self.cards[name].sparkline.setToolTip(
                 ("Mô phỏng" if state.mode == "simulation" else "Dữ liệu nguồn phiên")
@@ -164,8 +205,7 @@ class MonitoringPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
-        self.kpis = KpiStrip()
-        layout.addWidget(self.kpis)
+        self.kpis = KpiStrip(columns=3, compact=True, show_state=False)
         notice = QHBoxLayout()
         self.source_badge = badge("CHƯA CÓ NGUỒN", "muted")
         self.source_badge.setMinimumWidth(126)
@@ -179,7 +219,9 @@ class MonitoringPage(QWidget):
         self.tracking_badge = badge("CHƯA CÓ DỮ LIỆU", "muted")
         self.tracking_badge.setMinimumWidth(132)
         notice.addWidget(self.tracking_badge)
-        layout.addLayout(notice)
+        self.banner.hide()
+        self.source_badge.hide()
+        self.tracking_badge.hide()
 
         self.media_splitter = QSplitter(Qt.Horizontal)
         self.media_splitter.setHandleWidth(8)
@@ -187,7 +229,7 @@ class MonitoringPage(QWidget):
         self.camera_meta = text_label("Chờ nguồn", "muted")
         self.camera_meta.setMinimumWidth(164)
         self.camera_meta.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        camera, camera_layout = panel("QUAN SÁT THỊ GIÁC", trailing=self.camera_meta)
+        camera, camera_layout = panel("01  Quan sát thị giác")
         self.camera = ImageSurface(
             "Chưa có khung hình", "Bắt đầu phiên để xem ảnh và điểm đặc trưng."
         )
@@ -201,6 +243,19 @@ class MonitoringPage(QWidget):
         )
         self.focus_button.setStyleSheet("padding:4px 9px; font-size:11px;")
         self.focus_button.toggled.connect(self._update_focus)
+        controls = QHBoxLayout()
+        self.annotation_button = QPushButton("Điểm, nhãn")
+        self.annotation_button.setCheckable(True)
+        self.annotation_button.setChecked(True)
+        self.annotation_button.toggled.connect(self._annotations)
+        self.fit_button = QPushButton()
+        self.fit_button.setIcon(viewport_icon("fit"))
+        self.fit_button.setToolTip("Vừa khung · đặt lại zoom và pan")
+        self.fit_button.clicked.connect(self._fit_camera)
+        controls.addWidget(self.annotation_button)
+        controls.addWidget(self.focus_button)
+        controls.addStretch()
+        camera_layout.itemAt(0).layout().addLayout(controls)
         camera_layout.addWidget(self.camera, 1)
         key = QHBoxLayout()
         self.keypoint_labels = {}
@@ -214,71 +269,162 @@ class MonitoringPage(QWidget):
             label.setStyleSheet("color:" + color + ";")
             key.addWidget(label)
         key.addStretch()
-        key.addWidget(self.focus_button)
+
         camera_layout.addLayout(key)
+        key.addWidget(self.camera_meta)
+        self.camera_meta.setMinimumWidth(0)
         self.zoom_minus = QPushButton("−")
         self.zoom_plus = QPushButton("+")
         self.zoom_text = text_label("1.00×", "micro")
-        for button, change in [(self.zoom_minus, -.25), (self.zoom_plus, .25)]:
+        for button, change in [(self.zoom_minus, -0.25), (self.zoom_plus, 0.25)]:
             button.setObjectName("compact")
             button.setFixedWidth(26)
-            button.clicked.connect(lambda checked=False, change=change: self._zoom(change))
-        key.addWidget(self.zoom_minus)
-        key.addWidget(self.zoom_text)
-        key.addWidget(self.zoom_plus)
-        self.zoom_plus.setToolTip("Phóng to phần hiển thị; giữ nguyên ảnh gốc và kết quả đo")
+            button.clicked.connect(
+                lambda checked=False, change=change: self._zoom(change)
+            )
+        controls.addWidget(self.zoom_minus)
+        controls.addWidget(self.zoom_text)
+        controls.addWidget(self.zoom_plus)
+        controls.addWidget(self.fit_button)
+        self.zoom_plus.setToolTip(
+            "Phóng to phần hiển thị; giữ nguyên ảnh gốc và kết quả đo"
+        )
         twin, twin_layout = panel(
-            "MÔ HÌNH ĐỘNG HỌC SỐ",
-            trailing=text_label("2D · EKF vật lý", "muted"),
+            "02  Bản sao số",
         )
         self.twin = TwinSurface(
             "Chưa có trạng thái ước lượng",
             "Mô hình chỉ cập nhật khi có ước lượng hợp lệ hoặc dự báo.",
         )
+        twin_controls = QHBoxLayout()
+        self.twin_source = text_label("Ước lượng chưa khả dụng", "micro")
+        self.twin_source.setToolTip("Bản vẽ từ EKF vật lý; không phải cảm biến độc lập")
+        self.twin_zoom_minus = QPushButton("−")
+        self.twin_zoom_plus = QPushButton("+")
+        self.twin_fit_button = QPushButton()
+        self.twin_fit_button.setIcon(viewport_icon("fit"))
+        self.twin_fit_button.setToolTip("Bản sao số · vừa khung")
+        for button, change in [
+            (self.twin_zoom_minus, -0.25),
+            (self.twin_zoom_plus, 0.25),
+        ]:
+            button.setObjectName("compact")
+            button.setFixedWidth(26)
+            button.clicked.connect(
+                lambda checked=False, change=change: self.twin.set_zoom(
+                    self.twin.zoom_factor + change
+                )
+            )
+            twin_controls.addWidget(button)
+        self.twin_fit_button.clicked.connect(self.twin.fit_view)
+        twin_controls.addWidget(self.twin_fit_button)
+        twin_layout.itemAt(0).layout().addLayout(twin_controls)
         twin_layout.addWidget(self.twin, 1)
         twin_layout.addWidget(
-            text_label("O · Trục quay     C · Chốt khuỷu     S · Khớp pít-tông", "muted")
+            text_label(
+                "O · Trục quay     C · Chốt khuỷu     S · Khớp pít-tông", "muted"
+            )
         )
         self.media_splitter.addWidget(camera)
         self.media_splitter.addWidget(twin)
-        self.media_splitter.setSizes([680, 500])
+        self.media_splitter.setSizes([560, 440])
+        self.media_splitter.setStretchFactor(0, 56)
+        self.media_splitter.setStretchFactor(1, 44)
+        for button in (
+            self.annotation_button,
+            self.focus_button,
+            self.fit_button,
+            self.twin_fit_button,
+        ):
+            button.setFixedSize(32, 32)
+        self.annotation_button.setText("")
+        self.annotation_button.setIcon(viewport_icon("annotations"))
+        self.annotation_button.setToolTip("Bật/tắt điểm và chú thích · kéo ảnh để pan")
+        self.focus_button.setIcon(viewport_icon("focus"))
         layout.addWidget(self.media_splitter, 1)
 
         bottom_widget = QWidget()
-        bottom_widget.setFixedHeight(140)
+        bottom_widget.setFixedHeight(196)
+        self.bottom_widget = bottom_widget
         bottom_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         bottom = QHBoxLayout(bottom_widget)
         bottom.setContentsMargins(0, 0, 0, 0)
         bottom.setSpacing(10)
-        trend, trend_layout = panel(
-            "XU HƯỚNG GÓC QUAY", trailing=text_label("15 giây gần nhất", "muted")
-        )
+        trend, trend_layout = panel("Xu hướng góc · 15 s")
         self.overview = make_plot("Góc", "°")
-        self.raw_curve = curve(self.overview, "Thị giác trực tiếp", "#f0bf65", 1.3)
+        self.raw_curve = curve(self.overview, "Thị giác", "#F1BE62", 1.5)
         self.temporal_curve = curve(
-            self.overview, "EKF thời gian", "#438fff", 1.5, True
+            self.overview, "EKF thời gian", "#A696FF", 1.75, True
         )
         self.physics_curve = curve(self.overview, "EKF vật lý", "#50d4ed", 2)
+        self.overview.getPlotItem().legend.hide()
+        legend_row = QHBoxLayout()
+        legend_row.setSpacing(8)
+        for title, color in [
+            ("— Thị giác", "#F1BE62"),
+            ("– EKF thời gian", "#A696FF"),
+            ("— EKF vật lý", "#52D7F1"),
+        ]:
+            label = text_label(title, "micro")
+            label.setStyleSheet(f"color:{color}; font-size:12px;")
+            legend_row.addWidget(label)
+        legend_row.addStretch()
+        trend_layout.addLayout(legend_row)
+        self.overview.showGrid(x=False, y=True, alpha=0.08)
         trend_layout.addWidget(self.overview, 1)
-        status, status_layout = panel("TRẠNG THÁI PHIÊN")
+        status, status_layout = panel("Trạng thái phiên")
         self.status_table = table(["Thành phần", "Quan sát hiện tại"])
         self.status_table.horizontalHeader().hide()
         self.status_table.setRowCount(3)
         self.status_table.verticalHeader().setDefaultSectionSize(25)
+        self.status_table.verticalHeader().setMinimumSectionSize(20)
+        self.status_table.verticalHeader().setDefaultSectionSize(28)
+        self.status_table.setStyleSheet(
+            "QTableWidget::item { padding:3px 6px; font-size:13px; }"
+        )
         for row, title in enumerate(
             ["Điểm quan sát", "Phép đo bộ lọc", "Khung đã nhận"]
         ):
             self.status_table.setItem(row, 0, QTableWidgetItem(title))
             self.status_table.setItem(row, 1, QTableWidgetItem("—"))
-        status_layout.addWidget(self.status_table)
-        bottom.addWidget(trend, 2)
-        bottom.addWidget(status, 1)
+            self.status_table.item(row, 1).setTextAlignment(
+                Qt.AlignRight | Qt.AlignVCenter
+            )
+        self.event_log = QPlainTextEdit()
+        self.event_log.setReadOnly(True)
+        self.event_log.setMaximumBlockCount(80)
+        self.event_log.setPlaceholderText("Chưa có sự kiện phiên")
+        self.event_tabs = QTabWidget()
+        self.event_tabs.addTab(self.status_table, "Phiên")
+        self.event_tabs.addTab(self.event_log, "Sự kiện")
+        self._last_tracking = None
+        status_layout.addWidget(self.event_tabs)
+        metrics, metrics_layout = panel("Thông số ước lượng")
+        metrics_layout.addWidget(self.kpis, 1)
+        bottom.addWidget(metrics, 38)
+        bottom.addWidget(trend, 37)
+        bottom.addWidget(status, 25)
         layout.addWidget(bottom_widget)
         self.confidence_label = text_label(
             "Chưa có ước lượng để đánh giá độ tin cậy.", "muted", True
         )
-        layout.addWidget(self.confidence_label)
+        self.confidence_label.hide()
         self._update_focus()
+
+    def resizeEvent(self, event):
+        self.bottom_widget.setFixedHeight(196)
+        super().resizeEvent(event)
+
+    def add_event(self, message):
+        self.event_log.appendPlainText(message)
+
+    def _annotations(self, checked):
+        self.camera.show_annotations = checked
+        self.camera.update()
+
+    def _fit_camera(self):
+        self.camera.fit_view()
+        self.zoom_text.setText("1.00×")
 
     def _zoom(self, change):
         self.camera.set_zoom(self.camera.zoom_factor + change)
@@ -290,19 +436,36 @@ class MonitoringPage(QWidget):
 
     def _update_focus(self):
         # Miền cố định toàn vòng, có lề cho nhãn; không bám theo nhiễu từng khung.
-        points = np.concatenate([
-            list(self._geometry.points(theta).values())
-            for theta in np.linspace(0, 2 * math.pi, 181)
-        ])
+        points = np.concatenate(
+            [
+                list(self._geometry.points(theta).values())
+                for theta in np.linspace(0, 2 * math.pi, 181)
+            ]
+        )
         low, high = points.min(axis=0), points.max(axis=0)
-        rect = QRectF(float(low[0] - 180), float(low[1] - 80),
-                      float(high[0] - low[0] + 360), float(high[1] - low[1] + 160))
+        rect = QRectF(
+            float(low[0] - 24),
+            float(low[1] - 30),
+            float(high[0] - low[0] + 48),
+            float(high[1] - low[1] + 60),
+        )
         focused = self.focus_button.isChecked()
         self.camera.set_focus_rect(rect if focused else None)
-        self.focus_button.setText("Cận cảnh" if focused else "Toàn khung")
+        self.focus_button.setText("")
+        self.focus_button.setToolTip(
+            "Cận cảnh theo hiệu chuẩn" if focused else "Toàn khung nguồn"
+        )
+        self.focus_button.setAccessibleName("Cận cảnh" if focused else "Toàn khung")
 
     def prepare(self, mode):
         self.camera.clear()
+        self.camera.source_caption = (
+            "SIMULATION · MÔ PHỎNG" if mode == "simulation" else SOURCE_LABELS[mode]
+        )
+        self.event_log.clear()
+        self._last_tracking = None
+        self.add_event("Bắt đầu · " + SOURCE_LABELS[mode])
+        self.twin_source.setText("Ước lượng từ " + SOURCE_LABELS[mode].lower())
         self.twin.clear()
         self.kpis.clear()
         self.camera.set_zoom(1)
@@ -325,10 +488,14 @@ class MonitoringPage(QWidget):
         for item in (self.raw_curve, self.temporal_curve, self.physics_curve):
             item.clear()
 
-    def update_state(self, state, frame, twin):
+    def update_state(self, state, frame, twin, raw_frame=None):
         obs, metrics = state.observation, state.metrics
         est = metrics["physics"]
-        self.camera.set_frame(frame)
+        self.camera.set_frame(frame if raw_frame is None else raw_frame)
+        self.camera.set_overlay(obs if raw_frame is not None else None)
+        if est.status != self._last_tracking:
+            self.add_event(f"{obs.timestamp:.2f} s · {status_text(est.status)}")
+            self._last_tracking = est.status
         self.twin.set_estimate(self._geometry, est)
         self.kpis.update_metrics(metrics)
         self.kpis.update_trends(state)
@@ -336,8 +503,14 @@ class MonitoringPage(QWidget):
             point = obs.landmarks.get(name)
             score = value_text(point.confidence, 2) if point is not None else "—"
             label.setText(title + " · " + score)
-            label.setToolTip("Điểm tin cậy quan sát trên thang 0–1, không phải xác suất đúng. "
-                             + ("Quan sát tổng hợp mô phỏng." if state.mode == "simulation" else "Giá trị do detector cung cấp."))
+            label.setToolTip(
+                "Điểm tin cậy quan sát trên thang 0–1, không phải xác suất đúng. "
+                + (
+                    "Quan sát tổng hợp mô phỏng."
+                    if state.mode == "simulation"
+                    else "Giá trị do detector cung cấp."
+                )
+            )
         self.tracking_badge.setText(status_text(est.status).upper())
         set_tone(self.tracking_badge, STATUS_TONES.get(est.status, "muted"))
         self.camera_meta.setText(f"Khung {obs.frame_id} · {obs.timestamp:.2f} s")
