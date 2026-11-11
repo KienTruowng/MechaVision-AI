@@ -3,11 +3,23 @@ import os
 import platform
 import subprocess
 import sys
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
 print(sys.version, platform.platform(), flush=True)
-for name in ('numpy', 'opencv-contrib-python', 'PySide6', 'shiboken6', 'pyqtgraph', 'Pillow', 'pytest'):
-    print(name, version(name), flush=True)
+for name in (
+    'numpy',
+    'opencv-contrib-python',
+    'opencv-contrib-python-headless',
+    'PySide6',
+    'shiboken6',
+    'pyqtgraph',
+    'Pillow',
+    'pytest',
+):
+    try:
+        print(name, version(name), flush=True)
+    except PackageNotFoundError:
+        print(name, 'not installed', flush=True)
 for key in ('QT_QPA_PLATFORM', 'QT_PLUGIN_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH', 'DISPLAY', 'LD_LIBRARY_PATH'):
     print(key, os.environ.get(key), flush=True)
 # Hai tiến trình độc lập: so sánh Qt đơn lẻ và thứ tự import giống collection test.
