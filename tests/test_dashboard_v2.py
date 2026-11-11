@@ -46,6 +46,7 @@ def window(app, tmp_path, monkeypatch):
         assert widget.experiments.worker.wait(5000)
     app.processEvents()
     widget.close()
+    widget.deleteLater()
     app.processEvents()
 
 
