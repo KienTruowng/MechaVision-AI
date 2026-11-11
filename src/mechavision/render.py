@@ -1,8 +1,47 @@
 """Lớp phủ hiển thị phép đo và giá trị ước lượng."""
-from .i18n import put_text, status_text
+from .i18n import put_text, status_text, KEYPOINT_LABELS, _font
 import cv2
 import math
 from .types import Estimate
+
+
+def observation_label_layout(frame_shape,obs):
+    """Đặt nhãn tránh chồng nhau/che tâm khớp; chỉ thay tọa độ chữ trên ảnh."""
+    height,width=frame_shape[:2]
+    placed=[]
+    font=_font(21)
+    points=[(round(point.x),round(point.y)) for point in obs.landmarks.values()]
+    for name,point in obs.landmarks.items():
+        text=f'{KEYPOINT_LABELS.get(name,name)} · {point.confidence:.2f}'
+        bounds=font.getbbox(text)
+        w=min(width-10,bounds[2]-bounds[0]);h=bounds[3]-bounds[1]
+        x,y=round(point.x),round(point.y)
+        candidates=[(-w-14,-20),(14,36),(14,-20),(-w-14,36),(-w//2,-50),(-w//2,65)]
+        if name=='crank':candidates=candidates[1:]+candidates[:1]
+        if name=='piston':candidates=candidates[2:]+candidates[:2]
+        choices=[]
+        for dx,dy in candidates:
+            left=max(5,min(width-w-5,x+dx))
+            baseline=max(50+h,min(height-38,y+dy))
+            box=(left,baseline-h,left+w,baseline)
+            overlap=sum(max(0,min(box[2],previous[2])-max(box[0],previous[0]))*
+                        max(0,min(box[3],previous[3])-max(box[1],previous[1]))
+                        for _,_,previous in placed)
+            covered=sum(box[0]-9<px<box[2]+9 and box[1]-9<py<box[3]+9 for px,py in points)
+            score=overlap*100+covered*100000+abs(dx)+abs(dy)
+            choices.append((score,box))
+        _,box=min(choices,key=lambda candidate:candidate[0])
+        placed.append((name,text,box))
+    return placed
+
+
+def draw_observation_labels(frame,obs,colors):
+    for name,text,box in observation_label_layout(frame.shape,obs):
+        left,top,right,bottom=box
+        cv2.rectangle(frame,(left-3,top-3),(right+3,bottom+3),(39,26,14),-1)
+        put_text(frame,text,(left,bottom),cv2.FONT_HERSHEY_SIMPLEX,.75,
+                 colors.get(name,(255,255,255)),1,cv2.LINE_AA)
+    return frame
 
 
 def draw_estimate(frame,estimate:Estimate):
@@ -16,35 +55,15 @@ def draw_estimate(frame,estimate:Estimate):
     return frame
 
 
-def twin_frame(geo,est,width=620,height=390):
-    import numpy as np
-    img=np.full((height,width,3),(21,28,42),dtype=np.uint8)
-    put_text(img,'MÔ HÌNH ĐỘNG HỌC SỐ / ƯỚC LƯỢNG',(22,32),
-                cv2.FONT_HERSHEY_SIMPLEX,.56,(215,219,229),1,cv2.LINE_AA)
-    if est is None or est.theta is None:
-        put_text(img,'KHÔNG ĐỦ ĐỘ TIN CẬY ĐỂ ƯỚC LƯỢNG',(60,height//2),
-                    cv2.FONT_HERSHEY_SIMPLEX,.65,(80,155,233),2,cv2.LINE_AA)
-        return img
-    scale=min((width-110)/(2*(geo.rod_px+geo.radius_px)),(height-110)/(3*geo.radius_px))
-    pivot=np.array([max(95,width*.26),height*.53],dtype=float)
-    def xy(pos):return tuple(np.rint(pivot+np.array([pos[0],-pos[1]])*scale).astype(int))
-    r=geo.radius_px
-    O=xy((0,0));C=xy((r*np.cos(est.theta),r*np.sin(est.theta)))
-    P=xy((geo.slider_x(est.theta),geo.slider_offset_px))
-    cv2.line(img,(25,O[1]),(width-20,O[1]),(55,73,93),2)
-    cv2.circle(img,O,int(r*scale),(65,76,91),1,cv2.LINE_AA)
-    cv2.line(img,O,C,(226,167,88),9,cv2.LINE_AA)
-    cv2.line(img,C,P,(82,199,205),8,cv2.LINE_AA)
-    cv2.rectangle(img,(P[0]-15,P[1]-23),(P[0]+15,P[1]+23),(70,136,215),-1)
-    for pt in (O,C,P):cv2.circle(img,pt,6,(235,238,244),-1,cv2.LINE_AA)
-    put_text(img,'HIỂN THỊ THEO MÔ HÌNH — KHÔNG PHẢI CẢM BIẾN',(18,height-20),
-                cv2.FONT_HERSHEY_SIMPLEX,.45,(149,166,182),1,cv2.LINE_AA)
-    return img
+def twin_frame(geo, est, width=620, height=390):
+    from .twin_renderer import render_twin
+
+    return render_twin(geo, est, width, height)
 
 
 def decorate_video(frame,status,fps):
-    cv2.rectangle(frame,(0,0),(frame.shape[1],45),(20,29,46),-1)
-    color={'TRACKING':(96,209,144),'PREDICTED':(60,179,242),'LOST':(89,90,233)}.get(status,(177,177,177))
+    cv2.rectangle(frame,(0,0),(frame.shape[1],45),(46,29,20),-1)
+    color={'TRACKING':(177,213,72),'PREDICTED':(106,195,240),'LOST':(135,123,255)}.get(status,(177,177,177))
     put_text(frame,f'{status_text(status)}  |  {fps:.1f} khung/giây xử lý',(15,29),
                 cv2.FONT_HERSHEY_SIMPLEX,.61,color,2,cv2.LINE_AA)
     return frame

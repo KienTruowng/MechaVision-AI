@@ -1,5 +1,20 @@
 # Biên bản kiểm chứng phần mềm
 
+## Dashboard V2 — 09/11/2026
+
+- `python -m pytest -q`: **53 kiểm thử đạt**, mã thoát 0; giữ toàn bộ 30 kiểm thử trước và thêm 23 trường hợp cho trạng thái, vòng đời phiên, hiển thị và tương tác.
+- `python -m compileall -q src tools/verify_dashboard.py`: đạt. Ruff kiểm tra lỗi cú pháp/tên chưa định nghĩa được chọn: đạt. Các module UI mới cũng qua nhóm kiểm tra `F`.
+- Đã chạy ứng dụng bằng backend **Windows native**, bắt đầu/dừng mô phỏng, chuyển bốn trang khi đang chạy, thực nghiệm nền và đọc video qua decoder → detector → EKF. Lượt native có 13 ảnh, không có lỗi biên chữ được phát hiện.
+- Lượt QA **offscreen** có 16 ảnh, đúng kích thước pixel 1366×768 và 1920×1080, gồm bốn trang và trạng thái chờ, dự báo, mất dấu, kết nối/lỗi camera; không phát hiện nhãn Qt bị cắt. Đã xem trực quan ảnh các trang và các trạng thái bổ sung. Kiểm thử có thêm vùng nội dung 1366×700.
+- Trên host DPI 125%, cũng chạy thử native với hệ số tiến trình 0.8 để có DPR 1. Ảnh/biên bản native ghi cả kích thước yêu cầu, kích thước client và kích thước pixel thực; Windows có thể giới hạn chiều cao client theo thanh tiêu đề/taskbar.
+- Kiểm tra dữ liệu thiếu không biến thành số không, KPI lấy từ Processor, `LOST` không còn góc/RPM và Digital Twin không chuyển động; tệp ảnh giữ bản sao riêng và tự vẽ lại khi resize.
+- Kết quả đánh giá mô phỏng và đánh giá CSV của trang Thực nghiệm trùng với các hàm đánh giá gốc. Đã xác nhận đánh giá chạy ngoài luồng Qt và CSV xuất có tiêu đề Unicode/giá trị số đúng.
+- Các tệp động học, EKF, xử lý, dữ liệu, huấn luyện và đánh giá không thay đổi so với `main` làm nền. Các lớp nhận diện và bộ mô phỏng giữ nguyên biểu thức tính toán; chỉ lớp phủ/vẽ hiển thị được nâng cấp.
+
+Camera số 0 **không mở được** trong môi trường kiểm chứng. Đã kiểm tra được trạng thái kết nối, báo lỗi và phục hồi điều khiển; chưa xác minh phép đo camera trên cơ cấu thực. Chưa kiểm chứng huấn luyện/suy luận YOLO với trọng số riêng, độ chính xác vật lý hoặc hiệu năng GPU. Các cảnh video dùng để kiểm tra che khuất là fixture tổng hợp có nhãn rõ ràng, không phải thí nghiệm cơ cấu thực.
+
+Ảnh, kiến trúc, cách sử dụng và lệnh tái lập: [Dashboard V2](DASHBOARD_V2.md). Môi trường thư viện giữ như đợt Việt hóa bên dưới, không thêm phụ thuộc nặng. Hai module kiểm thử Qt yêu cầu nhóm `gui`; môi trường chỉ cài `dev` có thể bỏ qua chúng theo thiết kế.
+
 ## Đợt Việt hóa ngày 09/11/2026
 
 Môi trường kiểm tra: Windows, Python **3.12.13**, NumPy **2.5.4**, OpenCV **4.14.0**, Pillow **13.0.0**, PySide6 **6.12.0**, PyQtGraph **0.14.0**. Qt chạy bằng nền tảng **offscreen** để chụp và kiểm tra giao diện mà không cần thiết bị camera.

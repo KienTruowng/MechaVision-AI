@@ -1,0 +1,1 @@
+Angle=671.5183 degrees; KPI and chart preserve accumulated angle above 360.
