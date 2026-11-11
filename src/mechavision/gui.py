@@ -173,6 +173,15 @@ class MainWindow(QMainWindow):
 
     def start(self):
         if self.worker and self.worker.isRunning():
+            if self.state.phase in ("running", "paused"):
+                paused = self.state.phase != "paused"
+                self.worker.set_paused(paused)
+                self.state.phase = "paused" if paused else "running"
+                self.start_btn.setText("Tiếp tục" if paused else "Tạm dừng")
+                self.shell.system_badge.setText("TẠM DỪNG" if paused else "ĐANG PHÂN TÍCH")
+                set_tone(self.shell.system_badge, "warning" if paused else "valid")
+                self.monitor.add_event("Tạm dừng thu nhận" if paused else "Tiếp tục thu nhận")
+                self.banner.setText(("Tạm dừng • Đang xem mẫu cuối. " + ("Camera vẫn đọc và bỏ khung." if self.state.mode == "camera" else "Nguồn giữ nguyên vị trí.")) if paused else SOURCE_LABELS[self.state.mode])
             return
         mode = self.source_mode.currentData()
         geometry = self.geom_path.text().strip()
@@ -269,10 +278,15 @@ class MainWindow(QMainWindow):
             self.shell.system_badge.setText("ĐANG DỪNG")
             set_tone(self.shell.system_badge, "warning")
         self.stop_btn.setEnabled(False)
+        self.start_btn.setEnabled(False)
 
     def _on_sample(self, frame, twin, data):
+        if self.state.phase == "paused":
+            return
         if self.state.phase not in ("stopping", "error"):
             self.state.phase = "running"
+            self.start_btn.setEnabled(True)
+            self.start_btn.setText("Tạm dừng")
             self.shell.system_badge.setText("ĐANG PHÂN TÍCH")
             set_tone(self.shell.system_badge, "valid")
         self.state.append(data["observation"], data["metrics"])
@@ -306,6 +320,7 @@ class MainWindow(QMainWindow):
         )
         self.state.phase = "error" if self.state.error else "stopped"
         self.start_btn.setEnabled(True)
+        self.start_btn.setText("Bắt đầu phiên")
         self.stop_btn.setEnabled(False)
         self.settings.set_locked(False)
         self.shell.system_badge.setText("PHIÊN LỖI" if self.state.error else "ĐÃ DỪNG")

@@ -12,3 +12,5 @@
 - Không ghi CSV/video sinh bởi QA thành dữ liệu đo thật, không commit `.venv`, cache hoặc thông tin xác thực. `outputs/` bị bỏ qua; ảnh QA có chủ đích nằm trong `assets/`.
 
 V3 là mốc nền, không phải nhánh để tiếp tục sửa V4. Yêu cầu V4 cho phép quyết định thiết kế thông thường trong phạm vi repository; kiểm thử và đối chiếu ảnh trước khi bàn giao. Điều khiển chưa được pipeline hỗ trợ phải ghi rõ chưa khả dụng. Không suy ra latency từ nghịch đảo FPS; không lấy confidence của detector làm độ chính xác thực nghiệm. Trạng thái cuối và giới hạn được ghi trong [BAO_CAO_V4.md](BAO_CAO_V4.md).
+
+Phase 2 hiện tại: `feature/phase2-real-vision`, nền V4 `fe235e5`. Giữ baseline UI; đọc docs/PHASE2_VALIDATION.md và phần đầu HANDOFF.md. Không hiểu các ghi chú V4 lịch sử là HEAD hiện tại.

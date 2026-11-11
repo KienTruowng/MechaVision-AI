@@ -1,3 +1,15 @@
+# Cập nhật Phase 2 — 11/11/2026
+
+Nhánh hiện tại: `feature/phase2-real-vision`, tạo từ V4 `fe235e5` sau khi xác minh working tree sạch. Không reset, redesign, push hoặc merge main. Các ghi chú V4 phía dưới là lịch sử bản nền, không phải HEAD hiện tại.
+
+Đã bổ sung tạm dừng/tiếp tục bằng nút phiên hiện có, pacing video theo timestamp, phân biệt mất camera với EOF video và giải phóng handle lỗi. Không thay Geometry/EKF/YOLO adapter/schema dữ liệu. CPU fallback dùng detector marker hoặc thiết bị YOLO `cpu` được chọn rõ ràng.
+
+Kiểm chứng: 60 test liên quan đạt (5 test mới), 2 test video/vòng đời chạy lại trên Windows native đạt; compileall đạt. Fixture video tổng hợp xác minh decoder → detector → EKF → Twin → CSV, che pít-tông, mất dấu/phục hồi và pause/resume/stop. Chưa đo camera/LEGO thật, YOLO riêng hoặc latency toàn trình. Không đóng gói release Phase 2.
+
+Đọc [PHASE2_VALIDATION.md](PHASE2_VALIDATION.md) để chạy demo, tái lập kiểm thử, chuẩn bị tham chiếu độc lập và biết giới hạn camera/driver. Bước kế tiếp: camera thật → hiệu chuẩn LEGO → dữ liệu độc lập → đánh giá EKF; không dùng fixture làm kết quả vật lý.
+
+---
+
 # Trạng thái dự án — bàn giao V4
 
 Cập nhật 11/11/2026. Nhánh `feature/ultimate-dashboard-v4`, nền V3 `902d804833996aacf3b5ea5054314cd0150cbece`.

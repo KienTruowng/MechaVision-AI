@@ -1,6 +1,7 @@
 """Controller chạy nền; giữ nguyên luồng nhận diện, ước lượng và ghi CSV."""
 
 import time
+from threading import Event
 from PySide6.QtCore import QThread, Signal
 from .geometry import Geometry
 from .synthetic import Simulator, SimConfig, draw_mechanism
@@ -28,9 +29,35 @@ class Worker(QThread):
         self.log_path = log_path
         self.device = device
         self._stop = False
+        self._paused = Event()
+        self._wake = Event()
+
+    def set_paused(self, paused):
+        """Video giữ vị trí; camera tiếp tục đọc và bỏ khung khi tạm dừng."""
+        self._paused.set() if paused else self._paused.clear()
+        self._wake.set()
+
+    def _wait_active(self):
+        while self._paused.is_set() and not self._stop:
+            self._wake.wait(0.05)
+            self._wake.clear()
+        return not self._stop
+
+    def _pace(self, seconds):
+        deadline = time.perf_counter() + max(0, seconds)
+        while not self._stop:
+            if self._paused.is_set():
+                return self._wait_active()
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                break
+            self._wake.wait(min(remaining, 0.05))
+            self._wake.clear()
+        return not self._stop
 
     def stop(self):
         self._stop = True
+        self._wake.set()
 
     def run(self):
         processor = None
@@ -44,6 +71,8 @@ class Worker(QThread):
             if self.mode == "simulation":
                 simulator = Simulator(geo, SimConfig(seed=42))
                 while not self._stop:
+                    if not self._wait_active():
+                        break
                     t0 = time.perf_counter()
                     obs = simulator.step(1 / 30)
                     metrics = processor.step(obs)
@@ -65,11 +94,24 @@ class Worker(QThread):
                 detector = make_detector(self.detector_name, self.weights, self.device)
                 src = int(self.source) if self.mode == "camera" else self.source
                 with FrameSource(src) as capture:
+                    previous_ts = None
+                    previous_wall = None
                     while not self._stop:
+                        if self.mode == "video" and not self._wait_active():
+                            break
                         sample = capture.read()
                         if sample is None:
                             break
                         frame, ts, index = sample
+                        if self._stop:
+                            break
+                        if self.mode == "camera" and self._paused.is_set():
+                            self.msleep(5)
+                            continue
+                        if self.mode == "video" and previous_ts is not None:
+                            if not self._pace(ts - previous_ts - (time.perf_counter() - previous_wall)):
+                                break
+                        previous_ts, previous_wall = ts, time.perf_counter()
                         self.raw_frame.emit(frame.copy())
                         obs = detector.detect(frame, ts, index)
                         metrics = processor.step(obs)
@@ -86,8 +128,6 @@ class Worker(QThread):
                                 "synthetic": False,
                             },
                         )
-                        if self.mode == "video":
-                            self.msleep(20)
         except Exception as e:
             self.failed.emit(f"{type(e).__name__}: {e}")
         finally:
