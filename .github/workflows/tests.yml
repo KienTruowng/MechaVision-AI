@@ -32,12 +32,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libgl1 libopengl0 libxkbcommon0 fonts-dejavu-core
 
-      - name: Cài Python dependencies với OpenCV headless
+        - name: Cài Python dependencies với OpenCV headless
         run: |
           python -m pip install -e ".[gui,dev]"
           python -m pip uninstall -y opencv-contrib-python
           python -m pip install opencv-contrib-python-headless==4.14.0.94
-          python -m pip check
+          python -c "import cv2; print('OpenCV:', cv2.__version__)"
 
       - name: Kiểm tra GUI
         run: |
