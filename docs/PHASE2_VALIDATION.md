@@ -1,3 +1,39 @@
+# Phase 2.1 — readiness, 11/11/2026
+
+Nhánh `feature/phase2-real-vision`, tiếp tục từ `f305060`. Không redesign V4, không đổi YOLO Pose/EKF/kinematics/renderer hoặc cột CSV. Bản V4 gốc vẫn là `fe235e5`.
+
+- Thu nhận từ chối ảnh rỗng/sai định dạng, giải phóng handle khi lỗi; timestamp video lặp sau giá trị hợp lệ không còn tiến chỉ 1 microsecond mỗi khung.
+- Watchdog UI: quá 15 giây không tiến triển sẽ báo lỗi và yêu cầu stop; chặn mẫu đến muộn. Pause và pacing cập nhật heartbeat nên không gây timeout giả. Đóng cửa sổ khi đang thu nhận không wait trên UI thread; chờ signal finished trước đóng. Không terminate worker/driver. Timeout cũng có thể xảy ra khi tải mô hình/suy luận rất chậm; cần kiểm chứng máy đích.
+- Hiệu chuẩn dùng cùng FrameSource với dashboard (camera yêu cầu 960×540, kích thước thực do driver quyết định). Lưu geometry JSON tương thích và `.calibration.json` chứa kích thước ảnh, hash geometry, đơn vị và tỷ lệ mm tùy chọn. Worker từ chối ảnh khác kích thước hoặc geometry thay đổi sau hiệu chuẩn; cấu hình cũ thiếu sidecar vẫn đọc được nhưng không xác minh độ phân giải.
+- Mỗi phiên dashboard có `.metadata.json` cạnh CSV: nguồn, detector/device, geometry snapshot, độ phân giải nguồn, thời gian UTC và thời gian quan sát, số khung/trạng thái tracking, kết thúc/lỗi. `simulation` hoặc `unverified_capture`; camera/video không tự được chứng nhận vật lý. Không có ground truth thì accuracy chưa khả dụng, latency là null. Sidecar không sửa schema đánh giá hiện có.
+- Cleanup luôn phát tín hiệu kết thúc kể cả lỗi lưu/đóng. Metadata cập nhật lúc khởi tạo, biết kích thước nguồn và kết thúc; nếu tiến trình bị kill, trạng thái running không phải kết thúc thành công. Không ghi metadata mỗi frame để tránh I/O không cần thiết.
+
+Kiểm chứng: 50 test liên quan đạt; 3 test Windows native đạt (2 test chạy lại + 1 test mới, tổng 51 test khác nhau). Compileall src/tools đạt. Native bao gồm video fixture có đổi tốc độ/che khuất/phục hồi, pause/resume/stop và capture giả lập bị chặn: UI còn phản hồi, close không chờ đồng bộ, hủy hợp tác rồi đóng tài nguyên. Lần chạy đầu có 1 test timestamp thất bại do sai lệch 1 microsecond; đã sửa logic và nhóm 50 test chạy lại đạt. Không chạy toàn bộ QA dashboard.
+
+Chưa xác minh LEGO/camera vật lý/YOLO riêng/GPU/latency toàn trình. Chưa có dữ liệu ground truth để công bố MAE/RMSE/P95 vật lý. Driver bị chặn vẫn có thể giữ worker đến khi read/open trả về; không thể bảo đảm cưỡng chế đóng mọi backend Windows. Không claim kiểm thử rò rỉ bộ nhớ dài hạn. Confidence marker là trọng số quy ước/điểm hình dạng, không phải độ chính xác đã hiệu chuẩn.
+
+
+## Chạy hiệu chuẩn và demo Phase 2.1
+
+Từ repository:
+
+```powershell
+.venv\Scripts\python.exe -m mechavision calibrate --source "data/raw/lego_session01.mp4" --out configs/lego_session01.json
+.venv\Scripts\python.exe -m mechavision gui
+```
+
+Trong cửa sổ hiệu chuẩn nhấp O, C, S rồi một điểm xác định chiều dương trục trượt tính từ O; Enter lưu, R chọn lại, Esc hủy. Điểm thứ tư không nhất thiết nằm trên ray. Nhãn sai/hình học không khả thi bị từ chối, có thể chọn lại. Camera dùng `--source 0`. Không suy kích thước LEGO từ tên bộ hoặc ảnh minh họa.
+
+Chọn Video/Camera và tệp `configs/lego_session01.json` trong Cài đặt, dùng đúng góc máy/độ phân giải khi hiệu chuẩn. Không đổi zoom camera quang học hoặc vị trí camera sau hiệu chuẩn. Giữ `.calibration.json` cùng geometry khi di chuyển cấu hình.
+
+Thông số hình học có thể nhập qua Geometry JSON: radius_px, rod_px, origin_x/y, slider_offset_px là pixel; axis_deg là độ. Geometry kiểm tra hữu hạn, bán kính dương và điều kiện quay toàn vòng. EKF nội bộ dùng radian, UI hiển thị độ/RPM. Không nhập mm trực tiếp vào trường `_px`. Khi đã đo tỷ lệ độc lập, có thể dùng `save_calibration(geometry, output, (width, height), mm_per_pixel=...)`; tỷ lệ chỉ là metadata, không đổi đơn vị thuật toán hoặc trục dashboard. Không có tỷ lệ mặc định. Giả thiết mặt phẳng/góc nhìn và sai số click vẫn cần xác minh trên vật lý.
+
+Độ chính xác: dùng tham chiếu độc lập và real_ablation có sẵn; các số MAE/RMSE/P95 chỉ hợp lệ với dữ liệu tham chiếu đã kiểm tra đồng bộ và đơn vị. FPS/processing_ms hiện có không đại diện latency camera→màn hình. Ghi nguyên video, cấu hình, metadata và CSV mỗi phiên; không đổi tên fixture tổng hợp thành dữ liệu thực.
+
+Kiểm thử readiness: `python -m pytest -q tests/test_phase21_readiness.py tests/test_phase2_pipeline.py`. Capture bị chặn trong test là giả lập có thể giải phóng, không chứng minh driver thật luôn hủy được. Nút tạm dừng giữ mẫu cuối; mất điểm không bổ sung điểm suy luận vào cột obs_*; mất nguồn chuyển lỗi và bỏ mẫu đến muộn.
+
+---
+
 # Phase 2 — luồng camera/video và giao thức kiểm chứng
 
 Ngày 11/11/2026. Nhánh `feature/phase2-real-vision`, nền V4 `fe235e577fae160b26da793e419e133537d4ec94`. Giữ nguyên thiết kế V4, YOLO adapter, Geometry, EKF, Processor và schema CSV/JSON.

@@ -66,7 +66,7 @@ def make_video(folder):
     assert writer.isOpened()
     for i in range(90):
         frame = np.full((400, 640, 3), 20, np.uint8)
-        for name, point in geo.points(.4 + i * .025).items():
+        for name, point in geo.points(.4 + i * .025 + max(0, i - 65)**2 * .0001).items():
             if 35 <= i < 65 or (20 <= i < 35 and name == 'piston'):
                 continue
             color = {'pivot': (0, 0, 255), 'crank': (0, 255, 0), 'piston': (255, 0, 0)}[name]
@@ -107,6 +107,12 @@ def test_video_pause_occlusion_recovery_twin_csv(window, tmp_path):
     assert not rows[25]['obs_piston_x'] and rows[25]['theta_rad']
     assert any(row['status'] == 'LOST' and not row['theta_rad'] for row in rows)
     assert rows[-1]['status'] == 'TRACKING'
+    import json
+    from pathlib import Path
+    meta = json.loads(Path(window.state.log_path).with_suffix('.metadata.json').read_text(encoding='utf-8'))
+    assert meta['classification'] == 'unverified_capture'
+    assert meta['state'] == 'eof' and meta['frames'] == 90
+    assert meta['source_resolution'] == [640, 400]
 
 
 def test_stop_while_paused(window):

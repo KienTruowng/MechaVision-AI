@@ -2,7 +2,8 @@
 
 from datetime import datetime
 from pathlib import Path
-from PySide6.QtCore import Qt, QLocale
+from PySide6.QtCore import Qt, QLocale, QTimer
+import time
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import (
     QApplication,
@@ -55,6 +56,18 @@ class MainWindow(QMainWindow):
         self.state = DashboardState()
         self._session_row = None
         self._build()
+        self._watchdog = QTimer(self)
+        self._watchdog.setInterval(1000)
+        self._watchdog.timeout.connect(self._check_worker_timeout)
+        self._watchdog.start()
+
+    def _check_worker_timeout(self):
+        if (self.worker and self.worker.isRunning() and self.state.phase != "error"
+                and time.perf_counter() - self.worker.last_progress > 15):
+            self.worker.cancel_reason = "Quá 15 giây không có tiến triển; yêu cầu hủy"
+            self.worker.stop()
+            self.start_btn.setEnabled(False)
+            self._on_error("Quá 15 giây không có tiến triển. Đã yêu cầu hủy; driver camera hoặc suy luận có thể chưa trả về. Không mở phiên mới trước khi worker kết thúc.")
 
     def _build(self):
         self.shell = DashboardShell()
@@ -281,7 +294,7 @@ class MainWindow(QMainWindow):
         self.start_btn.setEnabled(False)
 
     def _on_sample(self, frame, twin, data):
-        if self.state.phase == "paused":
+        if self.state.phase in ("paused", "error", "stopping"):
             return
         if self.state.phase not in ("stopping", "error"):
             self.state.phase = "running"
@@ -357,15 +370,12 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         if self.worker and self.worker.isRunning():
             self.stop()
-            if not self.worker.wait(3500):
-                event.ignore()
-                _message(
-                    self,
-                    "Đang dừng",
-                    "Nguồn camera đang dừng. Vui lòng thử đóng lại sau.",
-                    QMessageBox.Information,
-                )
-                return
+            event.ignore()
+            if not getattr(self, '_close_pending', False):
+                self._close_pending = True
+                self.worker.finished.connect(self.close)
+            self.banner.setText('Đang chờ nguồn trả về để đóng an toàn; giao diện vẫn phản hồi.')
+            return
         if self.experiments.busy and not self.experiments.worker.wait(3500):
             event.ignore()
             _message(
