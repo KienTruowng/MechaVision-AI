@@ -67,12 +67,17 @@ class YOLOPoseDetector:
 
 
 def draw_observations(frame,obs:Observation):
-    colors={"pivot":(230,230,230),"crank":(70,174,251),"piston":(81,230,164)}
+    from .render import draw_observation_labels
+    colors={"pivot":(238,226,211),"crank":(237,212,80),"piston":(177,213,72)}
+    # Chỉ nối các điểm thực sự được nhận diện; không suy diễn điểm bị che.
+    for first,second in (("pivot","crank"),("crank","piston")):
+        if first in obs.landmarks and second in obs.landmarks:
+            a,b=obs.landmarks[first],obs.landmarks[second]
+            cv2.line(frame,(round(a.x),round(a.y)),(round(b.x),round(b.y)),(218,180,74),2,cv2.LINE_AA)
     for name,p in obs.landmarks.items():
         q=(round(p.x),round(p.y))
         cv2.circle(frame,q,7,colors.get(name,(255,255,255)),2,cv2.LINE_AA)
-        put_text(frame,f"{KEYPOINT_LABELS.get(name, name)} {p.confidence:.2f}",(q[0]+12,q[1]-11),
-                    cv2.FONT_HERSHEY_SIMPLEX,.47,colors.get(name,(255,255,255)),1,cv2.LINE_AA)
+    draw_observation_labels(frame,obs,colors)
     return frame
 
 class ColorMarkerDetector:

@@ -15,7 +15,7 @@ py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m mechavision gui
 ```
 
-Chọn **Nguồn → Mô phỏng → Bắt đầu phân tích**. Nhãn **DỮ LIỆU MÔ PHỎNG** xác định dữ liệu tổng hợp. **Đang theo dõi**, **Đang dự báo**, **Mất dấu** và **Chưa khởi tạo** mô tả bộ ước lượng, không xác nhận nguồn dữ liệu là đo thực. Khi không đủ độ tin cậy, góc/tốc độ được để trống.
+Chọn **Cài đặt → Loại nguồn → Mô phỏng**, rồi **Bắt đầu phiên**. Trang **Giám sát** hiển thị camera/mô hình số và KPI; trang **Phân tích** có ba nhóm biểu đồ động học, chất lượng quan sát và hiệu năng; trang **Thực nghiệm** chạy đánh giá và lưu JSON/CSV. Nhãn **MÔ PHỎNG** xác định dữ liệu tổng hợp. **Đang theo dõi**, **Đang dự báo**, **Mất dấu** và **Chưa khởi tạo** mô tả bộ ước lượng, không xác nhận nguồn dữ liệu là đo thực. Khi không đủ độ tin cậy, góc/tốc độ được để trống và mô hình số không tiếp tục chuyển động. Xem [bàn giao Dashboard V4](docs/HANDOFF.md).
 
 ## Kiểm thử và chạy thuật toán
 
@@ -33,8 +33,4 @@ Kết quả ở `outputs/evaluation/summary.json` và `ablation.csv`, chỉ đo 
 3. Chạy `mechavision calibrate --source 0 --out outputs/calibration.json`, chọn bốn điểm rồi nhấn Enter.
 4. Nếu gắn dấu chuẩn chính xác lên tâm khớp, dùng ArUco hoặc dấu đỏ/xanh lá/xanh dương để tạo đối chứng trước khi huấn luyện AI.
 5. Thực hiện `extract`, `annotate --folder`, `split`, `train`, `validate` theo README. Đường `annotate --video` có phím điều khiển khác và cần tự tổ chức các tập theo phiên.
-6. Chọn **Camera trực tiếp** hoặc **Video đã ghi** trong giao diện, cung cấp đúng tệp hiệu chuẩn và trọng số nếu dùng YOLO Pose. Thu góc tham chiếu độc lập để đánh giá.
-
-## Làm việc với GitHub
-
-Repository hiện có: [KienTruowng/MechaVision-AI](https://github.com/KienTruowng/MechaVision-AI). Xem [hướng dẫn GitHub](PUSH_TO_GITHUB_VI.md) để tải mã và tạo nhánh/Pull Request. Không cần khởi tạo lại Git cho bản đã được clone.
+6. Trong **Cài đặt**, chọn **Camera trực tiếp** hoặc **Video đã ghi**, cung cấp đúng tệp hiệu chuẩn và trọng số nếu dùng YOLO Pose. Thu góc tham chiếu độc lập để đánh giá. Dừng phiên trước khi đổi cấu hình.

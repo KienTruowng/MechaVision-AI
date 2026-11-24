@@ -1,0 +1,1007 @@
+{
+  "dashboard": "V4",
+  "baseline": "902d804833996aacf3b5ea5054314cd0150cbece",
+  "python": "3.12.13",
+  "qt": "6.12.0",
+  "pyqtgraph": "0.14.0",
+  "platform": "offscreen",
+  "font_family": "Segoe UI",
+  "screenshots": [
+    {
+      "file": "empty-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "idle",
+      "source": "simulation",
+      "frames": 0,
+      "tracking": null,
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "empty-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "idle",
+      "source": "simulation",
+      "frames": 0,
+      "tracking": null,
+      "page": 0,
+      "camera_viewport": [
+        727,
+        470
+      ],
+      "twin_viewport": [
+        565,
+        470
+      ]
+    },
+    {
+      "file": "empty-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "idle",
+      "source": "simulation",
+      "frames": 0,
+      "tracking": null,
+      "page": 0,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "monitoring-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 60,
+      "tracking": "TRACKING",
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "analytics-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 60,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "monitoring-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 62,
+      "tracking": "TRACKING",
+      "page": 0,
+      "camera_viewport": [
+        727,
+        470
+      ],
+      "twin_viewport": [
+        565,
+        470
+      ]
+    },
+    {
+      "file": "analytics-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 64,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        727,
+        470
+      ],
+      "twin_viewport": [
+        565,
+        470
+      ]
+    },
+    {
+      "file": "monitoring-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 66,
+      "tracking": "TRACKING",
+      "page": 0,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "analytics-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 69,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "analytics-quality-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 70,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "analytics-quality-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 73,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "analytics-quality-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 75,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "analytics-performance-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 75,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "analytics-performance-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 78,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "analytics-performance-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 80,
+      "tracking": "TRACKING",
+      "page": 1,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "monitoring-full-frame-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 82,
+      "tracking": "TRACKING",
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "monitoring-zoom-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 82,
+      "tracking": "TRACKING",
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "experiments-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 85,
+      "tracking": "TRACKING",
+      "page": 2,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "experiments-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 85,
+      "tracking": "TRACKING",
+      "page": 2,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "experiments-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 86,
+      "tracking": "TRACKING",
+      "page": 2,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "experiments-table-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 88,
+      "tracking": "TRACKING",
+      "page": 2,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "experiments-table-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 88,
+      "tracking": "TRACKING",
+      "page": 2,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "experiments-table-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "simulation",
+      "frames": 89,
+      "tracking": "TRACKING",
+      "page": 2,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "monitoring-annotations-off-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "monitoring-twin-zoom-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-geometry-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-geometry-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-geometry-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-display-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-display-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "settings-display-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "stopped",
+      "source": "simulation",
+      "frames": 91,
+      "tracking": "TRACKING",
+      "page": 3,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "video-predicted-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "video",
+      "frames": 21,
+      "tracking": "PREDICTED",
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "video-lost-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "video",
+      "frames": 38,
+      "tracking": "LOST",
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "video-lost-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "video",
+      "frames": 38,
+      "tracking": "LOST",
+      "page": 0,
+      "camera_viewport": [
+        727,
+        470
+      ],
+      "twin_viewport": [
+        565,
+        470
+      ]
+    },
+    {
+      "file": "video-lost-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "running",
+      "source": "video",
+      "frames": 40,
+      "tracking": "LOST",
+      "page": 0,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    },
+    {
+      "file": "camera-connecting-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "connecting",
+      "source": "camera",
+      "frames": 0,
+      "tracking": null,
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "camera-error-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "requested_width": 1366,
+      "requested_height": 768,
+      "pixel_width": 1366,
+      "pixel_height": 768,
+      "device_pixel_ratio": 1.0,
+      "phase": "error",
+      "source": "camera",
+      "frames": 0,
+      "tracking": null,
+      "page": 0,
+      "camera_viewport": [
+        596,
+        338
+      ],
+      "twin_viewport": [
+        462,
+        338
+      ]
+    },
+    {
+      "file": "camera-error-1600x900.png",
+      "width": 1600,
+      "height": 900,
+      "requested_width": 1600,
+      "requested_height": 900,
+      "pixel_width": 1600,
+      "pixel_height": 900,
+      "device_pixel_ratio": 1.0,
+      "phase": "error",
+      "source": "camera",
+      "frames": 0,
+      "tracking": null,
+      "page": 0,
+      "camera_viewport": [
+        727,
+        470
+      ],
+      "twin_viewport": [
+        565,
+        470
+      ]
+    },
+    {
+      "file": "camera-error-1920x1080.png",
+      "width": 1920,
+      "height": 1080,
+      "requested_width": 1920,
+      "requested_height": 1080,
+      "pixel_width": 1920,
+      "pixel_height": 1080,
+      "device_pixel_ratio": 1.0,
+      "phase": "error",
+      "source": "camera",
+      "frames": 0,
+      "tracking": null,
+      "page": 0,
+      "camera_viewport": [
+        906,
+        650
+      ],
+      "twin_viewport": [
+        706,
+        650
+      ]
+    }
+  ],
+  "bounds_issues": [],
+  "checks": [
+    "closeup_and_full_frame_toggle",
+    "view_only_zoom",
+    "export_matches_original_evaluation_csv",
+    "annotation_toggle_preserves_raw_image",
+    "camera_pan_fit",
+    "twin_zoom_fit",
+    "view_controls_preserve_state",
+    "start_simulation",
+    "navigate_while_running",
+    "background_evaluation",
+    "stop_simulation",
+    "video_decoder_and_marker_detection",
+    "predicted_state",
+    "lost_state",
+    "no_values_after_loss",
+    "camera_connection_or_reported_error"
+  ],
+  "camera": {
+    "opened": false,
+    "error": "RuntimeError: Không mở được nguồn camera/video: 0",
+    "note": "Không xác minh cơ cấu/hiệu chuẩn và không lưu ảnh camera thực."
+  },
+  "notices": [
+    {
+      "title": "Lỗi MechaVision",
+      "text": "Không thể hoàn tất phiên xử lý.\nRuntimeError: Không mở được nguồn camera/video: 0"
+    }
+  ]
+}
